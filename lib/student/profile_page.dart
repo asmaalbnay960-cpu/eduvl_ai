@@ -53,7 +53,7 @@ class ProfilePage extends StatelessWidget {
                     const SizedBox(height: 14),
 
                     const Text(
-                      "Ahmed M. Al-Ahmadi",
+                      "Asmaa S. Albannay",
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 20,
@@ -81,7 +81,7 @@ class ProfilePage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: const Text(
-                        "Physics K11 Module",
+                        "Physics Module",
                         style: TextStyle(
                           color: Colors.black,
                           fontWeight: FontWeight.bold,

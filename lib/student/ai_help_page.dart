@@ -15,19 +15,16 @@ class _AIHelpPageState extends State<AIHelpPage> {
   final List<Map<String, String>> _messages = [
     {
       "sender": "ai",
-      "text":
-      "Hello! I am your EduAI Assistant.\nHow can I help you today? "
+      "text": "Hello! I am your EduAI Assistant.\nHow can I help you today? "
     }
   ];
 
   final TextEditingController _controller = TextEditingController();
   bool _isLoading = false;
 
-  // ✅ Call Gemini API
   Future<String> _askGemini(String question) async {
     final url = Uri.parse(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$geminiApiKey"
-      ,
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$geminiApiKey",
     );
 
     final response = await http.post(
@@ -47,7 +44,6 @@ class _AIHelpPageState extends State<AIHelpPage> {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
 
-      // Safe parsing
       final candidates = data["candidates"];
       if (candidates == null || candidates.isEmpty) return "No response.";
 
@@ -57,12 +53,10 @@ class _AIHelpPageState extends State<AIHelpPage> {
 
       return parts[0]["text"] ?? "No response text.";
     } else {
-      // Show error body to help debug
       return "Error ${response.statusCode}: ${response.body}";
     }
   }
 
-  // ✅ Send message
   Future<void> sendMessage() async {
     final text = _controller.text.trim();
     if (text.isEmpty || _isLoading) return;
@@ -90,9 +84,10 @@ class _AIHelpPageState extends State<AIHelpPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F1B2B),
-      body: SafeArea(
+    // ✅ مهم: بدون Scaffold عشان ما يتكرر الـ BottomNavigationBar
+    return Container(
+      color: const Color(0xFF0F1B2B),
+      child: SafeArea(
         child: Column(
           children: [
             // Header
