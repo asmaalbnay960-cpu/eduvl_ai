@@ -19,10 +19,9 @@ class EduVLApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'EduVL-AI',
+    return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const SplashPage(),
+      home: SplashPage(), // ✅ يبدأ من السبلاش
     );
   }
 }

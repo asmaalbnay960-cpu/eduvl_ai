@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'lessons_page.dart'; // هذا الملف فيه PhysicsLessonsPage
+import 'lessons_page.dart';
 
 class CoursesPage extends StatelessWidget {
   const CoursesPage({super.key});
@@ -12,7 +12,7 @@ class CoursesPage extends StatelessWidget {
         "desc": "Explore motion, gravity, energy & more.",
         "icon": Icons.science,
         "color": Colors.green,
-        "page": const PhysicsLessonsPage(), // ✅ الصفحة الصحيحة
+        "page": const PhysicsLessonsPage(),
       },
       {
         "title": "Chemistry",
@@ -37,9 +37,9 @@ class CoursesPage extends StatelessWidget {
       },
     ];
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F1B2B),
-      body: SafeArea(
+    return Material(
+      color: const Color(0xFF0F1B2B),
+      child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -64,15 +64,12 @@ class CoursesPage extends StatelessWidget {
                     return GestureDetector(
                       onTap: () {
                         if (page != null) {
-                          Navigator.push(
-                            context,
+                          Navigator.of(context).push(
                             MaterialPageRoute(builder: (_) => page),
                           );
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("This course is coming soon."),
-                            ),
+                            const SnackBar(content: Text("This course is coming soon.")),
                           );
                         }
                       },
@@ -114,10 +111,7 @@ class CoursesPage extends StatelessWidget {
                                 ],
                               ),
                             ),
-                            const Icon(
-                              Icons.arrow_forward_ios,
-                              color: Colors.white54,
-                            ),
+                            const Icon(Icons.arrow_forward_ios, color: Colors.white54),
                           ],
                         ),
                       ),

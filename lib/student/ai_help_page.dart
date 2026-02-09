@@ -84,13 +84,11 @@ class _AIHelpPageState extends State<AIHelpPage> {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ مهم: بدون Scaffold عشان ما يتكرر الـ BottomNavigationBar
     return Container(
       color: const Color(0xFF0F1B2B),
       child: SafeArea(
         child: Column(
           children: [
-            // Header
             Container(
               padding: const EdgeInsets.all(20),
               alignment: Alignment.centerLeft,
@@ -103,8 +101,6 @@ class _AIHelpPageState extends State<AIHelpPage> {
                 ),
               ),
             ),
-
-            // Messages
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.all(16),
@@ -114,15 +110,12 @@ class _AIHelpPageState extends State<AIHelpPage> {
                   final isUser = msg["sender"] == "user";
 
                   return Align(
-                    alignment:
-                    isUser ? Alignment.centerRight : Alignment.centerLeft,
+                    alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
                     child: Container(
                       margin: const EdgeInsets.symmetric(vertical: 6),
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: isUser
-                            ? const Color(0xFF1FAF77)
-                            : const Color(0xFF243B55),
+                        color: isUser ? const Color(0xFF1FAF77) : const Color(0xFF243B55),
                         borderRadius: BorderRadius.circular(14),
                       ),
                       constraints: const BoxConstraints(maxWidth: 280),
@@ -135,7 +128,6 @@ class _AIHelpPageState extends State<AIHelpPage> {
                 },
               ),
             ),
-
             if (_isLoading)
               const Padding(
                 padding: EdgeInsets.only(bottom: 8),
@@ -144,8 +136,6 @@ class _AIHelpPageState extends State<AIHelpPage> {
                   style: TextStyle(color: Colors.white54),
                 ),
               ),
-
-            // Text Input
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               color: const Color(0xFF15263D),
@@ -158,8 +148,7 @@ class _AIHelpPageState extends State<AIHelpPage> {
                       onSubmitted: (_) => sendMessage(),
                       decoration: InputDecoration(
                         hintText: "Type your question...",
-                        hintStyle:
-                        TextStyle(color: Colors.white.withOpacity(0.6)),
+                        hintStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
                         border: InputBorder.none,
                       ),
                     ),

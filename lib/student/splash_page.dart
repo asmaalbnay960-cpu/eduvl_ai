@@ -9,18 +9,21 @@ class SplashPage extends StatefulWidget {
 }
 
 class _SplashPageState extends State<SplashPage> {
+
   @override
   void initState() {
     super.initState();
 
-    // Navigate after 3 seconds
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) {
+    // 👇 يخلي السبلاش يظهر أولاً ثم يبدأ العد
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(seconds: 3), () {
+        if (!mounted) return;
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const RegisterPage()),
         );
-      }
+      });
     });
   }
 
@@ -46,7 +49,7 @@ class _SplashPageState extends State<SplashPage> {
               ),
               child: const Center(
                 child: Icon(
-                  Icons.science, // Replace with your real logo asset later
+                  Icons.science,
                   color: accentGreen,
                   size: 50,
                 ),

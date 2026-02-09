@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import '../student/home_page.dart';
-import '../admin/admin_login_page.dart';
+
+import '../student/main_nav_page.dart';
 import '../admin/admin_dashboard_page.dart';
-import '../admin/admin_splash_page.dart';
 
 class RegisterPage extends StatefulWidget {
   final bool forceAdmin;
@@ -61,9 +60,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-
                 const SizedBox(height: 6),
-
                 Text(
                   isAdmin
                       ? "Administrator Access Only"
@@ -75,7 +72,6 @@ class _RegisterPageState extends State<RegisterPage> {
                     fontSize: 15,
                   ),
                 ),
-
                 const SizedBox(height: 30),
 
                 _buildInputField(icon: Icons.email, hint: "Email"),
@@ -147,17 +143,17 @@ class _RegisterPageState extends State<RegisterPage> {
                           ),
                         );
                       } else {
+                        // ✅ Student يدخل على نظام التبويبات الرئيسي
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const HomePage(),
+                            builder: (_) => const MainNavPage(initialIndex: 0),
                           ),
                         );
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                      isAdmin ? accentRed : accentGreen,
+                      backgroundColor: isAdmin ? accentRed : accentGreen,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -181,8 +177,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
                 if (!isAdmin)
                   TextButton(
-                    onPressed: () =>
-                        setState(() => isLogin = !isLogin),
+                    onPressed: () => setState(() => isLogin = !isLogin),
                     child: Text(
                       isLogin
                           ? "Don't have an account? Register"
