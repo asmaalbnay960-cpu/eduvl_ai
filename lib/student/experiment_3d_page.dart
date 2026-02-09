@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:eduvl_ai/student/quiz_page.dart';
 import 'package:model_viewer_plus/model_viewer_plus.dart';
 
-class Experiment3DPage extends StatelessWidget {
-  final String modelFile; // مثال: assets/models/newtons_cradle.glb
+class Experiment3DPage extends StatefulWidget {
+  final String modelFile;
   final String lessonTitle;
 
   const Experiment3DPage({
@@ -11,6 +11,13 @@ class Experiment3DPage extends StatelessWidget {
     required this.modelFile,
     required this.lessonTitle,
   });
+
+  @override
+  State<Experiment3DPage> createState() => _Experiment3DPageState();
+}
+
+class _Experiment3DPageState extends State<Experiment3DPage> {
+  bool _playAnimation = true;
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +49,7 @@ class Experiment3DPage extends StatelessWidget {
               const SizedBox(height: 15),
 
               Text(
-                lessonTitle,
+                widget.lessonTitle,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 24,
@@ -60,9 +67,15 @@ class Experiment3DPage extends StatelessWidget {
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: ModelViewer(
-                    src: modelFile, // ✅ يعرض ملف glb من assets
+                    src: widget.modelFile,
+
+                    // تشغيل الانيميشن إذا موجود داخل GLB
+                    autoPlay: _playAnimation,
+                    // إذا فيه اكثر من انيميشن اكتبي اسمه هنا
+                    // animationName: "Animation",
+
                     ar: false,
-                    autoRotate: true,
+                    autoRotate: false,
                     cameraControls: true,
                     backgroundColor: const Color(0xFF15263D),
                   ),
@@ -81,14 +94,40 @@ class Experiment3DPage extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: 25),
+              const SizedBox(height: 16),
+
+              /// زر تشغيل/ايقاف الانيميشن
+              ElevatedButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _playAnimation = !_playAnimation;
+                  });
+                },
+                icon: Icon(
+                  _playAnimation ? Icons.pause : Icons.play_arrow,
+                  color: Colors.white,
+                ),
+                label: Text(
+                  _playAnimation ? "Pause Animation" : "Play Animation",
+                  style: const TextStyle(color: Colors.white),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF32D296),
+                  minimumSize: const Size(double.infinity, 50),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
 
               ElevatedButton(
                 onPressed: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => QuizPage(lessonTitle: lessonTitle),
+                      builder: (_) => QuizPage(lessonTitle: widget.lessonTitle),
                     ),
                   );
                 },

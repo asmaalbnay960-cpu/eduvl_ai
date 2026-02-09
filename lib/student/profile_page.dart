@@ -14,7 +14,6 @@ class ProfilePage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
               /// ===== TITLE =====
               const Text(
                 "Profile & Settings",
@@ -76,7 +75,9 @@ class ProfilePage extends StatelessWidget {
 
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 18, vertical: 8),
+                        horizontal: 18,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFF1FAF77),
                         borderRadius: BorderRadius.circular(22),
@@ -139,8 +140,8 @@ class ProfilePage extends StatelessWidget {
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: () {
-                    Navigator.pushAndRemoveUntil(
-                      context,
+                    // ✅ مهم: يطلعك من الـ MainNavPage (Nested Navigators)
+                    Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
                       MaterialPageRoute(builder: (_) => const RegisterPage()),
                           (route) => false,
                     );
@@ -192,8 +193,11 @@ class ProfilePage extends StatelessWidget {
           subtitle,
           style: const TextStyle(color: Colors.white54),
         ),
-        trailing: const Icon(Icons.arrow_forward_ios,
-            size: 16, color: Colors.white54),
+        trailing: const Icon(
+          Icons.arrow_forward_ios,
+          size: 16,
+          color: Colors.white54,
+        ),
       ),
     );
   }

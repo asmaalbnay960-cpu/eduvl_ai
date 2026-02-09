@@ -26,10 +26,9 @@ class _MainNavPageState extends State<MainNavPage> {
   }
 
   Future<bool> _onWillPop() async {
-    final NavigatorState currentNavigator =
-    _navigatorKeys[_index].currentState!;
+    final currentNavigator = _navigatorKeys[_index].currentState;
 
-    if (currentNavigator.canPop()) {
+    if (currentNavigator != null && currentNavigator.canPop()) {
       currentNavigator.pop();
       return false;
     }
@@ -41,6 +40,15 @@ class _MainNavPageState extends State<MainNavPage> {
       key: _navigatorKeys[index],
       onGenerateRoute: (_) => MaterialPageRoute(builder: (_) => child),
     );
+  }
+
+  void _onTap(int newIndex) {
+    if (newIndex == _index) {
+      // إذا ضغطتِ على نفس التبويب: يرجّع أول صفحة داخل التبويب
+      _navigatorKeys[newIndex].currentState?.popUntil((r) => r.isFirst);
+    } else {
+      setState(() => _index = newIndex);
+    }
   }
 
   @override
@@ -63,7 +71,7 @@ class _MainNavPageState extends State<MainNavPage> {
           selectedItemColor: Colors.green,
           unselectedItemColor: Colors.white54,
           type: BottomNavigationBarType.fixed,
-          onTap: (i) => setState(() => _index = i),
+          onTap: _onTap,
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
             BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: "Progress"),
