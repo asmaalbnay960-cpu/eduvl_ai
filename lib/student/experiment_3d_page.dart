@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:eduvl_ai/student/quiz_page.dart'; // Correct package import
+import 'package:eduvl_ai/student/quiz_page.dart';
+import 'package:model_viewer_plus/model_viewer_plus.dart';
 
 class Experiment3DPage extends StatelessWidget {
-  final String modelFile;
+  final String modelFile; // مثال: assets/models/newtons_cradle.glb
   final String lessonTitle;
 
   const Experiment3DPage({
@@ -57,12 +58,13 @@ class Experiment3DPage extends StatelessWidget {
                     color: const Color(0xFF15263D),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.view_in_ar,
-                      color: Color(0xFF32D296),
-                      size: 80,
-                    ),
+                  clipBehavior: Clip.antiAlias,
+                  child: ModelViewer(
+                    src: modelFile, // ✅ يعرض ملف glb من assets
+                    ar: false,
+                    autoRotate: true,
+                    cameraControls: true,
+                    backgroundColor: const Color(0xFF15263D),
                   ),
                 ),
               ),

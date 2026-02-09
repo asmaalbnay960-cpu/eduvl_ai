@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'courses_page.dart';
+import 'dashboard_page.dart';
+import 'ai_help_page.dart';
+import 'profile_page.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -7,6 +11,7 @@ class DashboardPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0F1B2B),
+
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -24,7 +29,6 @@ class DashboardPage extends StatelessWidget {
 
               const SizedBox(height: 20),
 
-              // Progress Percentage
               const Text(
                 "75% Complete",
                 style: TextStyle(color: Colors.white, fontSize: 18),
@@ -32,7 +36,6 @@ class DashboardPage extends StatelessWidget {
 
               const SizedBox(height: 6),
 
-              // Progress Bar
               ClipRRect(
                 borderRadius: BorderRadius.circular(10),
                 child: LinearProgressIndicator(
@@ -71,6 +74,41 @@ class DashboardPage extends StatelessWidget {
             ],
           ),
         ),
+      ),
+
+      // ✅ Bottom Navigation Bar (المفقود)
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 1, // Dashboard = index 1
+        backgroundColor: const Color(0xFF15263D),
+        selectedItemColor: Colors.green,
+        unselectedItemColor: Colors.white54,
+        type: BottomNavigationBarType.fixed,
+        onTap: (index) {
+          Widget page;
+
+          if (index == 0) {
+            page = const CoursesPage();
+          } else if (index == 1) {
+            page = const DashboardPage();
+          } else if (index == 2) {
+            page = const AIHelpPage();
+          } else {
+            page = const ProfilePage();
+          }
+
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => page),
+                (route) => false,
+          );
+        },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.bar_chart), label: "Progress"),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.smart_toy_outlined), label: "AI Guide"),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
+        ],
       ),
     );
   }

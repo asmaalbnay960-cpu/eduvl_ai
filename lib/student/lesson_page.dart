@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'experiment_3d_page.dart'; // ✅ Correct file name
+import 'experiment_3d_page.dart';
 
 class LessonPage extends StatelessWidget {
   final String lessonTitle;
@@ -27,13 +27,11 @@ class LessonPage extends StatelessWidget {
         ),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
             Text(
               lessonDescription,
               style: const TextStyle(
@@ -63,35 +61,7 @@ class LessonPage extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 20),
-
-            const Text(
-              "3D Model Preview",
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
-            Container(
-              height: 200,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: const Color(0xFF1C2A3D),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(
-                child: Text(
-                  "Model: $modelFile",
-                  style: const TextStyle(color: Colors.white70),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 30),
+            const Spacer(),
 
             // 🚀 Start 3D Experiment Button
             SizedBox(
@@ -109,7 +79,7 @@ class LessonPage extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => Experiment3DPage( // ✅ Correct page
+                      builder: (_) => Experiment3DPage(
                         modelFile: modelFile,
                         lessonTitle: lessonTitle,
                       ),

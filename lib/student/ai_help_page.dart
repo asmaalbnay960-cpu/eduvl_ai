@@ -1,4 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+import '../config/gemini_key.dart';
 
 class AIHelpPage extends StatefulWidget {
   const AIHelpPage({super.key});
@@ -8,29 +12,80 @@ class AIHelpPage extends StatefulWidget {
 }
 
 class _AIHelpPageState extends State<AIHelpPage> {
-  final List<Map<String, dynamic>> _messages = [
+  final List<Map<String, String>> _messages = [
     {
       "sender": "ai",
       "text":
-      "Hello! I am your EduAI Assistant.\nHow can I help you with your physics concepts today? Try asking me about \"Newton's First Law\"."
+      "Hello! I am your EduAI Assistant.\nHow can I help you today? "
     }
   ];
 
   final TextEditingController _controller = TextEditingController();
+  bool _isLoading = false;
 
-  void sendMessage() {
-    if (_controller.text.trim().isEmpty) return;
+  // ✅ Call Gemini API
+  Future<String> _askGemini(String question) async {
+    final url = Uri.parse(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$geminiApiKey"
+      ,
+    );
+
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "contents": [
+          {
+            "parts": [
+              {"text": question}
+            ]
+          }
+        ]
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      // Safe parsing
+      final candidates = data["candidates"];
+      if (candidates == null || candidates.isEmpty) return "No response.";
+
+      final content = candidates[0]["content"];
+      final parts = content?["parts"];
+      if (parts == null || parts.isEmpty) return "No response text.";
+
+      return parts[0]["text"] ?? "No response text.";
+    } else {
+      // Show error body to help debug
+      return "Error ${response.statusCode}: ${response.body}";
+    }
+  }
+
+  // ✅ Send message
+  Future<void> sendMessage() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty || _isLoading) return;
 
     setState(() {
-      _messages.add({"sender": "user", "text": _controller.text.trim()});
-      _messages.add({
-        "sender": "ai",
-        "text":
-        "Great question! Mass is the amount of matter in an object, while Weight is the force of gravity acting on that mass."
-      });
+      _messages.add({"sender": "user", "text": text});
+      _isLoading = true;
     });
 
     _controller.clear();
+
+    final reply = await _askGemini(text);
+
+    setState(() {
+      _messages.add({"sender": "ai", "text": reply});
+      _isLoading = false;
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
@@ -47,9 +102,10 @@ class _AIHelpPageState extends State<AIHelpPage> {
               child: const Text(
                 "EduAI Assistant",
                 style: TextStyle(
-                    fontSize: 26,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold),
+                  fontSize: 26,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
 
@@ -74,9 +130,9 @@ class _AIHelpPageState extends State<AIHelpPage> {
                             : const Color(0xFF243B55),
                         borderRadius: BorderRadius.circular(14),
                       ),
-                      constraints: const BoxConstraints(maxWidth: 260),
+                      constraints: const BoxConstraints(maxWidth: 280),
                       child: Text(
-                        msg["text"],
+                        msg["text"] ?? "",
                         style: const TextStyle(color: Colors.white),
                       ),
                     ),
@@ -84,6 +140,15 @@ class _AIHelpPageState extends State<AIHelpPage> {
                 },
               ),
             ),
+
+            if (_isLoading)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 8),
+                child: Text(
+                  "Thinking...",
+                  style: TextStyle(color: Colors.white54),
+                ),
+              ),
 
             // Text Input
             Container(
@@ -95,6 +160,7 @@ class _AIHelpPageState extends State<AIHelpPage> {
                     child: TextField(
                       controller: _controller,
                       style: const TextStyle(color: Colors.white),
+                      onSubmitted: (_) => sendMessage(),
                       decoration: InputDecoration(
                         hintText: "Type your question...",
                         hintStyle:
@@ -104,8 +170,11 @@ class _AIHelpPageState extends State<AIHelpPage> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.send, color: Colors.blueAccent),
-                    onPressed: sendMessage,
+                    icon: Icon(
+                      Icons.send,
+                      color: _isLoading ? Colors.grey : Colors.blueAccent,
+                    ),
+                    onPressed: _isLoading ? null : sendMessage,
                   )
                 ],
               ),

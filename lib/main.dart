@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+
 import 'firebase_options.dart';
 import 'student/splash_page.dart';
 
@@ -21,7 +22,6 @@ class EduVLApp extends StatelessWidget {
     return MaterialApp(
       title: 'EduVL-AI',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(primarySwatch: Colors.blue),
       home: const SplashPage(),
     );
   }

@@ -59,3 +59,9 @@ ios/Pods/
 # ---------- VS Code ----------
 .vscode/
 
+# secret keys
+lib/config/gemini_key.dart
+.env
+.env.*
+
+

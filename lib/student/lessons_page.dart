@@ -36,15 +36,11 @@ class _PhysicsLessonsPageState extends State<PhysicsLessonsPage> {
     },
   ];
 
-  // PAGES for NAV BAR
-  final List<Widget> _navPages = const [
-    CoursesPage(),
-    DashboardPage(),
-    AIHelpPage(),
-    ProfilePage(),
-  ];
-
   void _onNavTap(int index) {
+    if (index == _currentIndex) return; // ✅ لا تعيد فتح نفس الصفحة
+
+    setState(() => _currentIndex = index); // ✅ يحدث التبويب
+
     if (index == 0) {
       Navigator.pushReplacement(
         context,
@@ -68,11 +64,11 @@ class _PhysicsLessonsPageState extends State<PhysicsLessonsPage> {
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0F1B2B),
-
       appBar: AppBar(
         backgroundColor: const Color(0xFF0F1B2B),
         elevation: 0,
@@ -85,7 +81,6 @@ class _PhysicsLessonsPageState extends State<PhysicsLessonsPage> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -104,7 +99,8 @@ class _PhysicsLessonsPageState extends State<PhysicsLessonsPage> {
                         lessonDescription: item["desc"] as String,
                         theoryText:
                         "Theory content for ${item["title"]} will go here.",
-                        modelFile: item["model"] as String,
+                        // ✅ ثابت للاختبار الآن
+                        modelFile: 'assets/models/newtons_cradle.glb',
                       ),
                     ),
                   );
@@ -118,7 +114,6 @@ class _PhysicsLessonsPageState extends State<PhysicsLessonsPage> {
                   ),
                   child: Row(
                     children: [
-                      // LESSON INFO
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -142,8 +137,6 @@ class _PhysicsLessonsPageState extends State<PhysicsLessonsPage> {
                           ],
                         ),
                       ),
-
-                      // STATUS BADGE
                       Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 6),
@@ -159,9 +152,7 @@ class _PhysicsLessonsPageState extends State<PhysicsLessonsPage> {
                               color: Colors.white, fontSize: 12),
                         ),
                       ),
-
                       const SizedBox(width: 10),
-
                       const Icon(Icons.arrow_forward_ios,
                           color: Colors.white54),
                     ],
@@ -172,8 +163,6 @@ class _PhysicsLessonsPageState extends State<PhysicsLessonsPage> {
           ),
         ),
       ),
-
-      // BOTTOM NAV BAR — SAME AS HOMEPAGE
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         backgroundColor: const Color(0xFF15263D),

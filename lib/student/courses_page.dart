@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'lessons_page.dart';
+import 'lessons_page.dart'; // هذا الملف فيه PhysicsLessonsPage
 
 class CoursesPage extends StatelessWidget {
   const CoursesPage({super.key});
@@ -12,7 +12,7 @@ class CoursesPage extends StatelessWidget {
         "desc": "Explore motion, gravity, energy & more.",
         "icon": Icons.science,
         "color": Colors.green,
-        "page": const PhysicsLessonsPage(),
+        "page": const PhysicsLessonsPage(), // ✅ الصفحة الصحيحة
       },
       {
         "title": "Chemistry",
@@ -53,21 +53,25 @@ class CoursesPage extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-
               const SizedBox(height: 20),
-
               Expanded(
                 child: ListView.builder(
                   itemCount: courses.length,
                   itemBuilder: (context, index) {
                     final item = courses[index];
+                    final Widget? page = item["page"] as Widget?;
+
                     return GestureDetector(
                       onTap: () {
-                        if (item["page"] != null) {
+                        if (page != null) {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(
-                              builder: (_) => item["page"],
+                            MaterialPageRoute(builder: (_) => page),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("This course is coming soon."),
                             ),
                           );
                         }
@@ -81,14 +85,18 @@ class CoursesPage extends StatelessWidget {
                         ),
                         child: Row(
                           children: [
-                            Icon(item["icon"], color: item["color"], size: 32),
+                            Icon(
+                              item["icon"] as IconData,
+                              color: item["color"] as Color,
+                              size: 32,
+                            ),
                             const SizedBox(width: 16),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    item["title"],
+                                    item["title"] as String,
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 20,
@@ -97,7 +105,7 @@ class CoursesPage extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 6),
                                   Text(
-                                    item["desc"],
+                                    item["desc"] as String,
                                     style: const TextStyle(
                                       color: Colors.white70,
                                       fontSize: 14,
@@ -106,8 +114,10 @@ class CoursesPage extends StatelessWidget {
                                 ],
                               ),
                             ),
-                            const Icon(Icons.arrow_forward_ios,
-                                color: Colors.white54)
+                            const Icon(
+                              Icons.arrow_forward_ios,
+                              color: Colors.white54,
+                            ),
                           ],
                         ),
                       ),
