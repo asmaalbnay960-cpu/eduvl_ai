@@ -11,11 +11,20 @@ class AdminDashboardPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFF0F1B2B),
 
-      // ✅ AppBar واحد فقط + زر تسجيل الخروج
+      // ✅ AppBar معدل
       appBar: AppBar(
         backgroundColor: const Color(0xFF15263D),
-        title: const Text("Admin Dashboard"),
-        centerTitle: true,
+        centerTitle: false, // صار يسار
+
+        title: const Text(
+          "Admin Dashboard",
+          style: TextStyle(
+            color: Colors.redAccent,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
+
         actions: [
           IconButton(
             tooltip: "Log Out",
