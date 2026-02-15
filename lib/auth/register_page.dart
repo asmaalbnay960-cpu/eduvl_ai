@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-=======
->>>>>>> 32988e1845ab3c13267f7d02f2ab264f81cdf749
 import '../student/main_nav_page.dart';
 import '../admin/admin_dashboard_page.dart';
 
@@ -20,7 +17,6 @@ class RegisterPage extends StatefulWidget {
 class _RegisterPageState extends State<RegisterPage> {
   bool isLogin = true;
 
-  // Controllers
   final _emailC = TextEditingController();
   final _passC = TextEditingController();
   final _confirmC = TextEditingController();
@@ -42,24 +38,24 @@ class _RegisterPageState extends State<RegisterPage> {
 
   Future<String?> _getRole(String uid) async {
     final doc =
-        await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    await FirebaseFirestore.instance.collection('users').doc(uid).get();
     if (!doc.exists) return null;
     final data = doc.data();
     return (data?['role'] ?? 'student') as String;
   }
 
-  /// ✅ إنشاء/تحديث بيانات المستخدم
-  /// - createdAt: نضبطها مرة وحدة فقط (إذا ما كانت موجودة)
-  /// - lastLoginAt: تتحدث دايم
   Future<void> _upsertUserDoc({
     required String uid,
     required String email,
     String? name,
     String? studentId,
     String role = 'student',
-    bool setCreatedAtIfMissing = true,
   }) async {
     final ref = FirebaseFirestore.instance.collection('users').doc(uid);
+
+    // createdAt مرة وحدة فقط
+    final snap = await ref.get();
+    final hasCreatedAt = snap.exists && (snap.data()?['createdAt'] != null);
 
     final payload = <String, dynamic>{
       'email': email,
@@ -68,21 +64,15 @@ class _RegisterPageState extends State<RegisterPage> {
       'totalRuntimeSeconds': FieldValue.increment(0),
     };
 
+    if (!hasCreatedAt) {
+      payload['createdAt'] = FieldValue.serverTimestamp();
+    }
     if (name != null) payload['name'] = name;
     if (studentId != null) payload['studentId'] = studentId;
-
-    // ✅ createdAt مرة وحدة فقط
-    if (setCreatedAtIfMissing) {
-      final snap = await ref.get();
-      if (!snap.exists || (snap.data()?['createdAt'] == null)) {
-        payload['createdAt'] = FieldValue.serverTimestamp();
-      }
-    }
 
     await ref.set(payload, SetOptions(merge: true));
   }
 
-  // ✅ Forgot password (بدون واجهة منفصلة)
   Future<void> _resetPassword() async {
     setState(() => _error = null);
 
@@ -94,13 +84,11 @@ class _RegisterPageState extends State<RegisterPage> {
 
     try {
       await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
-
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Reset link sent to $email (check Spam too).")),
       );
     } on FirebaseAuthException catch (e) {
-      // ✅ رسائل أوضح
       if (e.code == 'user-not-found') {
         setState(() => _error = "No account found for this email.");
       } else if (e.code == 'invalid-email') {
@@ -125,7 +113,7 @@ class _RegisterPageState extends State<RegisterPage> {
       return;
     }
 
-    // ✅ وقت التسجيل فقط
+    // Register checks (طلاب فقط)
     if (!isLogin && !adminModeUIOnly) {
       if (_confirmC.text != pass) {
         setState(() => _error = "Passwords do not match.");
@@ -149,11 +137,10 @@ class _RegisterPageState extends State<RegisterPage> {
 
     try {
       final auth = FirebaseAuth.instance;
-
       UserCredential cred;
 
       if (isLogin) {
-        // ✅ Login
+        // Login
         cred = await auth.signInWithEmailAndPassword(
           email: email,
           password: pass,
@@ -167,28 +154,21 @@ class _RegisterPageState extends State<RegisterPage> {
 
         final uid = user.uid;
 
-        // ✅ مهم: لا ننشئ doc جديد أثناء Login إذا ما كان موجود
-        final userDoc =
-            await FirebaseFirestore.instance.collection('users').doc(uid).get();
+        // لو Firestore doc مفقود، ننشئ واحد بسيط
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .get();
 
         if (!userDoc.exists) {
-          // هذا يعني عندك مستخدم Auth لكن بيانات Firestore ما انحفظت لأي سبب
-          // نسوي إنشاء بسيط (بدون name/id لأنهم ما ينطلبون في Login)
-          await _upsertUserDoc(
-            uid: uid,
-            email: email,
-            role: 'student',
-            setCreatedAtIfMissing: true,
-          );
+          await _upsertUserDoc(uid: uid, email: email, role: 'student');
         } else {
-          // فقط نحدث lastLoginAt
           await FirebaseFirestore.instance.collection('users').doc(uid).update({
             'lastLoginAt': FieldValue.serverTimestamp(),
           });
         }
 
         final role = await _getRole(uid) ?? 'student';
-
         if (!mounted) return;
 
         if (role == 'admin') {
@@ -199,12 +179,11 @@ class _RegisterPageState extends State<RegisterPage> {
         } else {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(
-                builder: (_) => const MainNavPage(initialIndex: 0)),
+            MaterialPageRoute(builder: (_) => const MainNavPage(initialIndex: 0)),
           );
         }
       } else {
-        // ✅ Register
+        // Register (طلاب)
         cred = await auth.createUserWithEmailAndPassword(
           email: email,
           password: pass,
@@ -224,29 +203,16 @@ class _RegisterPageState extends State<RegisterPage> {
           name: _nameC.text.trim(),
           studentId: _studentIdC.text.trim(),
           role: 'student',
-          setCreatedAtIfMissing: true,
         );
-
-        // الدور الحقيقي من Firestore (هنا غالبًا student)
-        final role = await _getRole(uid) ?? 'student';
 
         if (!mounted) return;
 
-        if (role == 'admin') {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const AdminDashboardPage()),
-          );
-        } else {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-                builder: (_) => const MainNavPage(initialIndex: 0)),
-          );
-        }
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const MainNavPage(initialIndex: 0)),
+        );
       }
     } on FirebaseAuthException catch (e) {
-      // ✅ رسائل أوضح
       if (e.code == 'user-not-found') {
         setState(() => _error = "No account found for this email.");
       } else if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
@@ -290,8 +256,8 @@ class _RegisterPageState extends State<RegisterPage> {
                   adminModeUIOnly
                       ? "Admin Login"
                       : isLogin
-                          ? "Login"
-                          : "Create Account",
+                      ? "Login"
+                      : "Create Account",
                   style: const TextStyle(
                     color: accentGreen,
                     fontSize: 28,
@@ -303,8 +269,8 @@ class _RegisterPageState extends State<RegisterPage> {
                   adminModeUIOnly
                       ? "Administrator Access Only"
                       : isLogin
-                          ? "Welcome back to EduVL-AI"
-                          : "Join EduVL-AI Virtual Learning",
+                      ? "Welcome back to EduVL-AI"
+                      : "Join EduVL-AI Virtual Learning",
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.7),
                     fontSize: 15,
@@ -329,7 +295,6 @@ class _RegisterPageState extends State<RegisterPage> {
                   const SizedBox(height: 16),
                 ],
 
-                // ===== Email =====
                 _buildInputField(
                   controller: _emailC,
                   icon: Icons.email,
@@ -338,7 +303,6 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
                 const SizedBox(height: 18),
 
-                // ===== Password =====
                 _buildInputField(
                   controller: _passC,
                   icon: Icons.lock,
@@ -346,7 +310,6 @@ class _RegisterPageState extends State<RegisterPage> {
                   isPassword: true,
                 ),
 
-                // ✅ Forgot password يظهر فقط في Login
                 if (isLogin) ...[
                   const SizedBox(height: 6),
                   Align(
@@ -365,7 +328,6 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                 ],
 
-                // ✅ Confirm مباشرة تحت Password
                 if (!isLogin && !adminModeUIOnly) ...[
                   const SizedBox(height: 18),
                   _buildInputField(
@@ -374,10 +336,6 @@ class _RegisterPageState extends State<RegisterPage> {
                     hint: "Confirm Password",
                     isPassword: true,
                   ),
-                ],
-
-                // ✅ بعدها الاسم والـ ID
-                if (!isLogin && !adminModeUIOnly) ...[
                   const SizedBox(height: 18),
                   _buildInputField(
                     controller: _nameC,
@@ -402,30 +360,29 @@ class _RegisterPageState extends State<RegisterPage> {
                   child: ElevatedButton(
                     onPressed: _loading ? null : _handleSubmit,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          adminModeUIOnly ? accentRed : accentGreen,
+                      backgroundColor: adminModeUIOnly ? accentRed : accentGreen,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                     child: _loading
                         ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
                         : Text(
-                            adminModeUIOnly
-                                ? "Admin Login"
-                                : isLogin
-                                    ? "Login"
-                                    : "Register",
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                      adminModeUIOnly
+                          ? "Admin Login"
+                          : isLogin
+                          ? "Login"
+                          : "Register",
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
 
@@ -472,7 +429,7 @@ class _RegisterPageState extends State<RegisterPage> {
         fillColor: const Color(0xFF162232),
         prefixIcon: Icon(icon, color: Colors.white70),
         hintText: hint,
-        hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+        hintStyle: TextStyle(color: Colors.white54),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
