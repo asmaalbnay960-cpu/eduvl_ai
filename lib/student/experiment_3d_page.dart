@@ -17,7 +17,7 @@ class Experiment3DPage extends StatefulWidget {
 }
 
 class _Experiment3DPageState extends State<Experiment3DPage> {
-  bool _playAnimation = true;
+  bool _playAnimation = true; // يشتغل تلقائي
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +59,7 @@ class _Experiment3DPageState extends State<Experiment3DPage> {
 
               const SizedBox(height: 20),
 
+              /// 3D MODEL VIEWER
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
@@ -68,12 +69,7 @@ class _Experiment3DPageState extends State<Experiment3DPage> {
                   clipBehavior: Clip.antiAlias,
                   child: ModelViewer(
                     src: widget.modelFile,
-
-                    // تشغيل الانيميشن إذا موجود داخل GLB
-                    autoPlay: _playAnimation,
-                    // إذا فيه اكثر من انيميشن اكتبي اسمه هنا
-                    // animationName: "Animation",
-
+                    autoPlay: _playAnimation, // الأنيميشن يشتغل تلقائي
                     ar: false,
                     autoRotate: false,
                     cameraControls: true,
@@ -94,34 +90,9 @@ class _Experiment3DPageState extends State<Experiment3DPage> {
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
-              /// زر تشغيل/ايقاف الانيميشن
-              ElevatedButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _playAnimation = !_playAnimation;
-                  });
-                },
-                icon: Icon(
-                  _playAnimation ? Icons.pause : Icons.play_arrow,
-                  color: Colors.white,
-                ),
-                label: Text(
-                  _playAnimation ? "Pause Animation" : "Play Animation",
-                  style: const TextStyle(color: Colors.white),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF32D296),
-                  minimumSize: const Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
+              /// QUIZ BUTTON
               ElevatedButton(
                 onPressed: () {
                   Navigator.push(
