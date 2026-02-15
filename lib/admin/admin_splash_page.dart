@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'admin_login_page.dart';
+import 'admin_dashboard_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AdminSplashPage extends StatefulWidget {
   const AdminSplashPage({super.key});
@@ -9,20 +12,49 @@ class AdminSplashPage extends StatefulWidget {
 }
 
 class _AdminSplashPageState extends State<AdminSplashPage> {
+
   @override
   void initState() {
     super.initState();
+    _checkAdmin();
+  }
 
-    /// ⏳ Simulate loading
-    Future.delayed(const Duration(seconds: 3), () {
-      if (!mounted) return;
+  Future<void> _checkAdmin() async {
+    await Future.delayed(const Duration(seconds: 2));
+
+    final user = FirebaseAuth.instance.currentUser;
+
+    // ما فيه مستخدم
+    if (user == null) {
+      _goToLogin();
+      return;
+    }
+
+    // تحقق هل هو ادمن فعلاً من فايرستور
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+
+    final role = doc.data()?['role'];
+
+    if (!mounted) return;
+
+    if (role == 'admin') {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (_) => const AdminLoginPage(),
-        ),
+        MaterialPageRoute(builder: (_) => const AdminDashboardPage()),
       );
-    });
+    } else {
+      _goToLogin();
+    }
+  }
+
+  void _goToLogin() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const AdminLoginPage()),
+    );
   }
 
   @override
@@ -36,6 +68,7 @@ class _AdminSplashPageState extends State<AdminSplashPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+
             /// 🛡️ Admin Icon
             Container(
               padding: const EdgeInsets.all(22),
@@ -52,7 +85,6 @@ class _AdminSplashPageState extends State<AdminSplashPage> {
 
             const SizedBox(height: 24),
 
-            /// App Name
             const Text(
               "EduVL-AI",
               style: TextStyle(
@@ -64,7 +96,6 @@ class _AdminSplashPageState extends State<AdminSplashPage> {
 
             const SizedBox(height: 6),
 
-            /// Subtitle
             Text(
               "Admin Control Panel",
               style: TextStyle(
@@ -75,7 +106,6 @@ class _AdminSplashPageState extends State<AdminSplashPage> {
 
             const SizedBox(height: 40),
 
-            /// Loader
             const CircularProgressIndicator(
               color: accentGreen,
               strokeWidth: 3,

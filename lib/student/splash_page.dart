@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../auth/register_page.dart';
+import '../auth/auth_gate.dart'; // ✅ تأكدي هذا المسار صحيح عندك
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -9,19 +9,17 @@ class SplashPage extends StatefulWidget {
 }
 
 class _SplashPageState extends State<SplashPage> {
-
   @override
   void initState() {
     super.initState();
 
-    // يخلي السبلاش يظهر أولاً ثم يبدأ العد
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(const Duration(seconds: 3), () {
         if (!mounted) return;
 
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const RegisterPage()),
+          MaterialPageRoute(builder: (_) => const AuthGate()),
         );
       });
     });
@@ -29,7 +27,7 @@ class _SplashPageState extends State<SplashPage> {
 
   @override
   Widget build(BuildContext context) {
-    const Color background = Color(0xFF0F1B2B); // deep navy
+    const Color background = Color(0xFF0F1B2B);
     const Color accentGreen = Color(0xFF2ECC71);
     const Color iconBg = Color(0xFF193047);
 
@@ -39,23 +37,23 @@ class _SplashPageState extends State<SplashPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-
             Container(
-              width: 110,
-              height: 110,
+              width: 130,
+              height: 130,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 color: iconBg,
               ),
               child: ClipOval(
-                child: Transform.translate(
-                  offset: const Offset(0, 12), // 👈 نزليه لتحت (عدلي الرقم)
-                  child: Transform.scale(
-                    scale: 2.9,
-                    alignment: Alignment.center,
-                    child: Image.asset(
-                      "assets/images/logo.png",
-                      fit: BoxFit.contain,
+                child: Center(
+                  child: Transform.translate(
+                    offset: const Offset(0, 10), // ✅ نزّل اللوقو لتحت (عدلي الرقم إذا تبين)
+                    child: Transform.scale(
+                      scale: 3.2,
+                      child: Image.asset(
+                        "assets/images/logo.png",
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
                 ),
@@ -63,8 +61,6 @@ class _SplashPageState extends State<SplashPage> {
             ),
 
             const SizedBox(height: 25),
-
-            // TITLE
             const Text(
               "EduVL-AI",
               style: TextStyle(
@@ -73,21 +69,15 @@ class _SplashPageState extends State<SplashPage> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-
             const SizedBox(height: 8),
-
-            // SUBTITLE
-            Text(
+            const Text(
               "Interactive Virtual Learning",
               style: TextStyle(
                 fontSize: 16,
-                color: Colors.white.withOpacity(0.7),
+                color: Colors.white70,
               ),
             ),
-
             const SizedBox(height: 35),
-
-            // LOADING SPINNER
             const CircularProgressIndicator(
               color: accentGreen,
               strokeWidth: 3,

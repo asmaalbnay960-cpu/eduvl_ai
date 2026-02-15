@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 import 'firebase_options.dart';
-import 'auth/auth_gate.dart';
-
+import 'student/splash_page.dart'; // ✅ هذا المسار الصحيح عندك
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,8 +21,7 @@ class EduVLApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: AuthGate(),
- // ✅ يبدأ من السبلاش
+      home: SplashPage(), // ✅ يبدأ من السبلاش
     );
   }
 }

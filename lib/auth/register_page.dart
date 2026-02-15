@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 import '../student/main_nav_page.dart';
 import '../admin/admin_dashboard_page.dart';
 
 class RegisterPage extends StatefulWidget {
-  // forceAdmin واجهة فقط (ما يعطي صلاحية)
   final bool forceAdmin;
   const RegisterPage({super.key, this.forceAdmin = false});
 
@@ -25,6 +23,14 @@ class _RegisterPageState extends State<RegisterPage> {
 
   bool _loading = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.forceAdmin) {
+      isLogin = true; // admin login فقط
+    }
+  }
 
   @override
   void dispose() {
@@ -53,7 +59,6 @@ class _RegisterPageState extends State<RegisterPage> {
   }) async {
     final ref = FirebaseFirestore.instance.collection('users').doc(uid);
 
-    // createdAt مرة وحدة فقط
     final snap = await ref.get();
     final hasCreatedAt = snap.exists && (snap.data()?['createdAt'] != null);
 
@@ -64,9 +69,7 @@ class _RegisterPageState extends State<RegisterPage> {
       'totalRuntimeSeconds': FieldValue.increment(0),
     };
 
-    if (!hasCreatedAt) {
-      payload['createdAt'] = FieldValue.serverTimestamp();
-    }
+    if (!hasCreatedAt) payload['createdAt'] = FieldValue.serverTimestamp();
     if (name != null) payload['name'] = name;
     if (studentId != null) payload['studentId'] = studentId;
 
@@ -154,7 +157,6 @@ class _RegisterPageState extends State<RegisterPage> {
 
         final uid = user.uid;
 
-        // لو Firestore doc مفقود، ننشئ واحد بسيط
         final userDoc = await FirebaseFirestore.instance
             .collection('users')
             .doc(uid)
@@ -179,7 +181,9 @@ class _RegisterPageState extends State<RegisterPage> {
         } else {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (_) => const MainNavPage(initialIndex: 0)),
+            MaterialPageRoute(
+              builder: (_) => const MainNavPage(initialIndex: 0),
+            ),
           );
         }
       } else {
@@ -209,7 +213,9 @@ class _RegisterPageState extends State<RegisterPage> {
 
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const MainNavPage(initialIndex: 0)),
+          MaterialPageRoute(
+            builder: (_) => const MainNavPage(initialIndex: 0),
+          ),
         );
       }
     } on FirebaseAuthException catch (e) {
@@ -252,25 +258,53 @@ class _RegisterPageState extends State<RegisterPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  adminModeUIOnly
-                      ? "Admin Login"
-                      : isLogin
-                      ? "Login"
-                      : "Create Account",
-                  style: const TextStyle(
-                    color: accentGreen,
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
+                // ✅ Back only when in Admin mode
+                Row(
+                  children: [
+                    if (adminModeUIOnly)
+                      IconButton(
+                        tooltip: "Back to Student",
+                        onPressed:
+                        _loading ? null : () => Navigator.pop(context),
+                        icon: const Icon(Icons.arrow_back,
+                            color: Colors.white70),
+                      ),
+                    const Spacer(),
+                  ],
+                ),
+
+                // ✅ Title (Hidden Admin Entry: long press on "Login")
+                GestureDetector(
+                  onLongPress: (!adminModeUIOnly && isLogin && !_loading)
+                      ? () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                        const RegisterPage(forceAdmin: true),
+                      ),
+                    );
+                  }
+                      : null,
+                  child: Text(
+                    adminModeUIOnly
+                        ? "Admin Login"
+                        : (isLogin ? "Login" : "Create Account"),
+                    style: TextStyle(
+                      color: adminModeUIOnly ? accentRed : accentGreen,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
+
                 const SizedBox(height: 6),
                 Text(
                   adminModeUIOnly
                       ? "Administrator Access Only"
-                      : isLogin
+                      : (isLogin
                       ? "Welcome back to EduVL-AI"
-                      : "Join EduVL-AI Virtual Learning",
+                      : "Join EduVL-AI Virtual Learning"),
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.7),
                     fontSize: 15,
@@ -309,24 +343,6 @@ class _RegisterPageState extends State<RegisterPage> {
                   hint: "Password",
                   isPassword: true,
                 ),
-
-                if (isLogin) ...[
-                  const SizedBox(height: 6),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: _loading ? null : _resetPassword,
-                      child: const Text(
-                        "Forgot password?",
-                        style: TextStyle(
-                          color: accentGreen,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
 
                 if (!isLogin && !adminModeUIOnly) ...[
                   const SizedBox(height: 18),
@@ -374,9 +390,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         : Text(
                       adminModeUIOnly
                           ? "Admin Login"
-                          : isLogin
-                          ? "Login"
-                          : "Register",
+                          : (isLogin ? "Login" : "Register"),
                       style: const TextStyle(
                         color: Colors.black,
                         fontSize: 18,
@@ -386,8 +400,9 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
 
+                // ✅ Switch (طلاب فقط)
                 if (!adminModeUIOnly)
                   TextButton(
                     onPressed: _loading
@@ -404,6 +419,22 @@ class _RegisterPageState extends State<RegisterPage> {
                       ),
                     ),
                   ),
+
+                // ✅ Forgot password (فقط في Login)
+                if (isLogin) ...[
+                  const SizedBox(height: 2),
+                  TextButton(
+                    onPressed: _loading ? null : _resetPassword,
+                    child: const Text(
+                      "Forgot password?",
+                      style: TextStyle(
+                        color: accentGreen,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -429,7 +460,7 @@ class _RegisterPageState extends State<RegisterPage> {
         fillColor: const Color(0xFF162232),
         prefixIcon: Icon(icon, color: Colors.white70),
         hintText: hint,
-        hintStyle: TextStyle(color: Colors.white54),
+        hintStyle: const TextStyle(color: Colors.white54),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
