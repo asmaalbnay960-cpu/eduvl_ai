@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'courses_page.dart';
 import 'dashboard_page.dart';
 import 'ai_help_page.dart';

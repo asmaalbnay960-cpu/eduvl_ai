@@ -14,7 +14,7 @@ class _SplashPageState extends State<SplashPage> {
   void initState() {
     super.initState();
 
-    // 👇 يخلي السبلاش يظهر أولاً ثم يبدأ العد
+    // يخلي السبلاش يظهر أولاً ثم يبدأ العد
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(const Duration(seconds: 3), () {
         if (!mounted) return;
@@ -39,7 +39,7 @@ class _SplashPageState extends State<SplashPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // LOGO CIRCLE
+
             Container(
               width: 110,
               height: 110,
@@ -47,11 +47,17 @@ class _SplashPageState extends State<SplashPage> {
                 shape: BoxShape.circle,
                 color: iconBg,
               ),
-              child: const Center(
-                child: Icon(
-                  Icons.science,
-                  color: accentGreen,
-                  size: 50,
+              child: ClipOval(
+                child: Transform.translate(
+                  offset: const Offset(0, 12), // 👈 نزليه لتحت (عدلي الرقم)
+                  child: Transform.scale(
+                    scale: 2.9,
+                    alignment: Alignment.center,
+                    child: Image.asset(
+                      "assets/images/logo.png",
+                      fit: BoxFit.contain,
+                    ),
+                  ),
                 ),
               ),
             ),

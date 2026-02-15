@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+=======
+>>>>>>> 32988e1845ab3c13267f7d02f2ab264f81cdf749
 import '../student/main_nav_page.dart';
 import '../admin/admin_dashboard_page.dart';
 

@@ -46,7 +46,7 @@ class CoursesPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                "Choose a Course",
+                "Courses",
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 28,
