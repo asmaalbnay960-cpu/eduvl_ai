@@ -24,6 +24,9 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _loading = false;
   String? _error;
 
+  // ✅ حطي إيميل الأدمن الموحد هنا (بالضبط)
+  static const String kAdminEmail = "admin@eduvl-ai.com";
+
   @override
   void initState() {
     super.initState();
@@ -43,8 +46,7 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Future<String?> _getRole(String uid) async {
-    final doc =
-    await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
     if (!doc.exists) return null;
     final data = doc.data();
     return (data?['role'] ?? 'student') as String;
@@ -116,6 +118,12 @@ class _RegisterPageState extends State<RegisterPage> {
       return;
     }
 
+    // ✅ حماية: وضع الأدمن يسمح فقط بإيميل الأدمن الموحد
+    if (adminModeUIOnly && email.toLowerCase() != kAdminEmail.toLowerCase()) {
+      setState(() => _error = "Access denied. This page is for the administrator only.");
+      return;
+    }
+
     // Register checks (طلاب فقط)
     if (!isLogin && !adminModeUIOnly) {
       if (_confirmC.text != pass) {
@@ -157,17 +165,40 @@ class _RegisterPageState extends State<RegisterPage> {
 
         final uid = user.uid;
 
-        final userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(uid)
-            .get();
+        final userDocRef = FirebaseFirestore.instance.collection('users').doc(uid);
+        final userDoc = await userDocRef.get();
 
+        // ✅ إذا سجل دخول من صفحة الأدمن: لازم يكون role=admin
+        if (adminModeUIOnly) {
+          // لازم يكون عنده وثيقة role=admin (أفضل أماناً)
+          final role = await _getRole(uid);
+
+          if (role != 'admin') {
+            await FirebaseAuth.instance.signOut();
+            setState(() => _error = "Access denied. You are not authorized as an admin.");
+            return;
+          }
+
+          // تحديث lastLoginAt فقط
+          await userDocRef.set({
+            'email': email,
+            'role': 'admin',
+            'lastLoginAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+
+          if (!mounted) return;
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const AdminDashboardPage()),
+          );
+          return;
+        }
+
+        // ✅ تسجيل دخول الطلاب (الوضع العادي)
         if (!userDoc.exists) {
           await _upsertUserDoc(uid: uid, email: email, role: 'student');
         } else {
-          await FirebaseFirestore.instance.collection('users').doc(uid).update({
-            'lastLoginAt': FieldValue.serverTimestamp(),
-          });
+          await userDocRef.update({'lastLoginAt': FieldValue.serverTimestamp()});
         }
 
         final role = await _getRole(uid) ?? 'student';
@@ -181,13 +212,11 @@ class _RegisterPageState extends State<RegisterPage> {
         } else {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(
-              builder: (_) => const MainNavPage(initialIndex: 0),
-            ),
+            MaterialPageRoute(builder: (_) => const MainNavPage(initialIndex: 0)),
           );
         }
       } else {
-        // Register (طلاب)
+        // Register (طلاب فقط)
         cred = await auth.createUserWithEmailAndPassword(
           email: email,
           password: pass,
@@ -213,9 +242,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-            builder: (_) => const MainNavPage(initialIndex: 0),
-          ),
+          MaterialPageRoute(builder: (_) => const MainNavPage(initialIndex: 0)),
         );
       }
     } on FirebaseAuthException catch (e) {
@@ -258,38 +285,31 @@ class _RegisterPageState extends State<RegisterPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // ✅ Back only when in Admin mode
                 Row(
                   children: [
                     if (adminModeUIOnly)
                       IconButton(
                         tooltip: "Back to Student",
-                        onPressed:
-                        _loading ? null : () => Navigator.pop(context),
-                        icon: const Icon(Icons.arrow_back,
-                            color: Colors.white70),
+                        onPressed: _loading ? null : () => Navigator.pop(context),
+                        icon: const Icon(Icons.arrow_back, color: Colors.white70),
                       ),
                     const Spacer(),
                   ],
                 ),
 
-                // ✅ Title (Hidden Admin Entry: long press on "Login")
                 GestureDetector(
                   onLongPress: (!adminModeUIOnly && isLogin && !_loading)
                       ? () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) =>
-                        const RegisterPage(forceAdmin: true),
+                        builder: (_) => const RegisterPage(forceAdmin: true),
                       ),
                     );
                   }
                       : null,
                   child: Text(
-                    adminModeUIOnly
-                        ? "Admin Login"
-                        : (isLogin ? "Login" : "Create Account"),
+                    adminModeUIOnly ? "Admin Login" : (isLogin ? "Login" : "Create Account"),
                     style: TextStyle(
                       color: adminModeUIOnly ? accentRed : accentGreen,
                       fontSize: 28,
@@ -302,13 +322,8 @@ class _RegisterPageState extends State<RegisterPage> {
                 Text(
                   adminModeUIOnly
                       ? "Administrator Access Only"
-                      : (isLogin
-                      ? "Welcome back to EduVL-AI"
-                      : "Join EduVL-AI Virtual Learning"),
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.7),
-                    fontSize: 15,
-                  ),
+                      : (isLogin ? "Welcome back to EduVL-AI" : "Join EduVL-AI Virtual Learning"),
+                  style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 15),
                 ),
                 const SizedBox(height: 20),
 
@@ -321,10 +336,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: accentRed.withOpacity(0.6)),
                     ),
-                    child: Text(
-                      _error!,
-                      style: const TextStyle(color: Colors.white),
-                    ),
+                    child: Text(_error!, style: const TextStyle(color: Colors.white)),
                   ),
                   const SizedBox(height: 16),
                 ],
@@ -377,9 +389,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     onPressed: _loading ? null : _handleSubmit,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: adminModeUIOnly ? accentRed : accentGreen,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     child: _loading
                         ? const SizedBox(
@@ -388,9 +398,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                         : Text(
-                      adminModeUIOnly
-                          ? "Admin Login"
-                          : (isLogin ? "Login" : "Register"),
+                      adminModeUIOnly ? "Admin Login" : (isLogin ? "Login" : "Register"),
                       style: const TextStyle(
                         color: Colors.black,
                         fontSize: 18,
@@ -402,16 +410,11 @@ class _RegisterPageState extends State<RegisterPage> {
 
                 const SizedBox(height: 14),
 
-                // ✅ Switch (طلاب فقط)
                 if (!adminModeUIOnly)
                   TextButton(
-                    onPressed: _loading
-                        ? null
-                        : () => setState(() => isLogin = !isLogin),
+                    onPressed: _loading ? null : () => setState(() => isLogin = !isLogin),
                     child: Text(
-                      isLogin
-                          ? "Don't have an account? Register"
-                          : "Already have an account? Login",
+                      isLogin ? "Don't have an account? Register" : "Already have an account? Login",
                       style: const TextStyle(
                         color: accentGreen,
                         fontSize: 14,
@@ -420,7 +423,6 @@ class _RegisterPageState extends State<RegisterPage> {
                     ),
                   ),
 
-                // ✅ Forgot password (فقط في Login)
                 if (isLogin) ...[
                   const SizedBox(height: 2),
                   TextButton(

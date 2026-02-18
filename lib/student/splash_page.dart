@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../auth/auth_gate.dart'; // ✅ تأكدي هذا المسار صحيح عندك
+import '../auth/auth_gate.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -13,15 +13,12 @@ class _SplashPageState extends State<SplashPage> {
   void initState() {
     super.initState();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(seconds: 3), () {
-        if (!mounted) return;
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const AuthGate()),
-        );
-      });
+    Future.delayed(const Duration(seconds: 3), () {
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const AuthGate()),
+      );
     });
   }
 
@@ -47,7 +44,7 @@ class _SplashPageState extends State<SplashPage> {
               child: ClipOval(
                 child: Center(
                   child: Transform.translate(
-                    offset: const Offset(0, 10), // ✅ نزّل اللوقو لتحت (عدلي الرقم إذا تبين)
+                    offset: const Offset(0, 10),
                     child: Transform.scale(
                       scale: 3.2,
                       child: Image.asset(
@@ -59,7 +56,6 @@ class _SplashPageState extends State<SplashPage> {
                 ),
               ),
             ),
-
             const SizedBox(height: 25),
             const Text(
               "EduVL-AI",
@@ -72,16 +68,10 @@ class _SplashPageState extends State<SplashPage> {
             const SizedBox(height: 8),
             const Text(
               "Interactive Virtual Learning",
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.white70,
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.white70),
             ),
             const SizedBox(height: 35),
-            const CircularProgressIndicator(
-              color: accentGreen,
-              strokeWidth: 3,
-            ),
+            const CircularProgressIndicator(color: accentGreen, strokeWidth: 3),
           ],
         ),
       ),

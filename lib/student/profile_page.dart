@@ -7,7 +7,6 @@ import '../auth/register_page.dart';
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
-  // ✅ Dialog داكن لتغيير كلمة المرور
   static Future<void> _showChangePasswordDialog(BuildContext context) async {
     const bg = Color(0xFF0F1B2B);
     const card = Color(0xFF15263D);
@@ -21,6 +20,7 @@ class ProfilePage extends StatelessWidget {
 
     bool loading = false;
     String? errorText;
+    bool success = false;
 
     InputDecoration deco(String label, IconData icon) {
       return InputDecoration(
@@ -31,7 +31,7 @@ class ProfilePage extends StatelessWidget {
         prefixIcon: Icon(icon, color: Colors.white70),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.white12),
+          borderSide: const BorderSide(color: Colors.white12),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -42,10 +42,10 @@ class ProfilePage extends StatelessWidget {
 
     await showDialog(
       context: context,
-      barrierDismissible: !loading,
-      builder: (ctx) {
+      barrierDismissible: true,
+      builder: (dialogCtx) {
         return StatefulBuilder(
-          builder: (ctx, setState) {
+          builder: (dialogCtx, setState) {
             Future<void> submit() async {
               final user = FirebaseAuth.instance.currentUser;
               final email = user?.email;
@@ -75,29 +75,37 @@ class ProfilePage extends StatelessWidget {
               setState(() {
                 loading = true;
                 errorText = null;
+                success = false;
               });
 
               try {
-                // ✅ Re-authentication required for sensitive actions
                 final cred = EmailAuthProvider.credential(
                   email: email,
                   password: currentPass,
                 );
-                await user.reauthenticateWithCredential(cred);
 
-                // ✅ Update password
+                await user.reauthenticateWithCredential(cred);
                 await user.updatePassword(newPass);
 
-                if (ctx.mounted) Navigator.pop(ctx);
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Password updated successfully.")),
-                );
+                if (!dialogCtx.mounted) return;
+                setState(() {
+                  success = true;
+                  errorText = null;
+                });
               } on FirebaseAuthException catch (e) {
-                setState(() => errorText = e.message ?? e.code);
+                if (!dialogCtx.mounted) return;
+                setState(() {
+                  success = false;
+                  errorText = e.message ?? e.code;
+                });
               } catch (e) {
-                setState(() => errorText = e.toString());
+                if (!dialogCtx.mounted) return;
+                setState(() {
+                  success = false;
+                  errorText = e.toString();
+                });
               } finally {
+                if (!dialogCtx.mounted) return;
                 setState(() => loading = false);
               }
             }
@@ -130,6 +138,23 @@ class ProfilePage extends StatelessWidget {
                       style: TextStyle(color: Colors.white60, fontSize: 12),
                     ),
                     const SizedBox(height: 14),
+
+                    if (success) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: accent.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: accent.withOpacity(0.8)),
+                        ),
+                        child: const Text(
+                          "Password updated successfully.\nPlease sign out and sign in again to verify the change.",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
 
                     if (errorText != null) ...[
                       Container(
@@ -177,7 +202,7 @@ class ProfilePage extends StatelessWidget {
                       children: [
                         Expanded(
                           child: OutlinedButton(
-                            onPressed: loading ? null : () => Navigator.pop(ctx),
+                            onPressed: loading ? null : () => Navigator.pop(dialogCtx),
                             style: OutlinedButton.styleFrom(
                               side: const BorderSide(color: Colors.white24),
                               foregroundColor: Colors.white70,
@@ -186,7 +211,7 @@ class ProfilePage extends StatelessWidget {
                               ),
                               padding: const EdgeInsets.symmetric(vertical: 12),
                             ),
-                            child: const Text("Cancel"),
+                            child: Text(success ? "Close" : "Cancel"),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -203,14 +228,14 @@ class ProfilePage extends StatelessWidget {
                             ),
                             child: loading
                                 ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
-                                  )
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
                                 : const Text(
-                                    "Update",
-                                    style: TextStyle(fontWeight: FontWeight.bold),
-                                  ),
+                              "Update",
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ),
                       ],
@@ -224,6 +249,7 @@ class ProfilePage extends StatelessWidget {
       },
     );
 
+    // dispose بعد إغلاق الديالوج
     currentC.dispose();
     newC.dispose();
     confirmC.dispose();
@@ -232,16 +258,10 @@ class ProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return const RegisterPage();
 
-    // إذا لسبب ما ما فيه مستخدم
-    if (user == null) {
-      return const RegisterPage();
-    }
-
-    final userDocStream = FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .snapshots();
+    final userDocStream =
+    FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots();
 
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
       stream: userDocStream,
@@ -249,14 +269,11 @@ class ProfilePage extends StatelessWidget {
         if (snap.connectionState == ConnectionState.waiting) {
           return const Material(
             color: Color(0xFF0F1B2B),
-            child: SafeArea(
-              child: Center(child: CircularProgressIndicator()),
-            ),
+            child: SafeArea(child: Center(child: CircularProgressIndicator())),
           );
         }
 
         final data = snap.data?.data() ?? {};
-
         final name = (data['name'] ?? 'No Name') as String;
         final studentId = (data['studentId'] ?? '—') as String;
         final module = (data['module'] ?? 'Physics Module') as String;
@@ -302,7 +319,6 @@ class ProfilePage extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 16),
-
                         Text(
                           name,
                           style: const TextStyle(
@@ -311,34 +327,19 @@ class ProfilePage extends StatelessWidget {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-
                         const SizedBox(height: 6),
-
                         Text(
                           "Student ID: $studentId",
-                          style: const TextStyle(
-                            color: Colors.white54,
-                            fontSize: 14,
-                          ),
+                          style: const TextStyle(color: Colors.white54, fontSize: 14),
                         ),
-
                         const SizedBox(height: 6),
-
                         Text(
                           email,
-                          style: const TextStyle(
-                            color: Colors.white38,
-                            fontSize: 13,
-                          ),
+                          style: const TextStyle(color: Colors.white38, fontSize: 13),
                         ),
-
                         const SizedBox(height: 14),
-
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 18,
-                            vertical: 8,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
                           decoration: BoxDecoration(
                             color: const Color(0xFF1FAF77),
                             borderRadius: BorderRadius.circular(22),
@@ -402,22 +403,16 @@ class ProfilePage extends StatelessWidget {
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: () async {
-                        // ✅ signOut من Firebase
                         await FirebaseAuth.instance.signOut();
-
                         if (!context.mounted) return;
 
-                        Navigator.of(context, rootNavigator: true)
-                            .pushAndRemoveUntil(
+                        Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
                           MaterialPageRoute(builder: (_) => const RegisterPage()),
-                          (route) => false,
+                              (route) => false,
                         );
                       },
                       icon: const Icon(Icons.logout, color: Colors.white),
-                      label: const Text(
-                        "Log Out",
-                        style: TextStyle(fontSize: 18),
-                      ),
+                      label: const Text("Log Out", style: TextStyle(fontSize: 18)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red,
                         minimumSize: const Size(double.infinity, 55),
@@ -453,20 +448,7 @@ class ProfilePage extends StatelessWidget {
       child: ListTile(
         onTap: onTap,
         leading: Icon(icon, color: const Color(0xFF32D296)),
-        title: Text(
-          title,
-          style: const TextStyle(color: Colors.white, fontSize: 16),
-        ),
-        subtitle: Text(
-          subtitle,
-          style: const TextStyle(color: Colors.white54),
-        ),
-        trailing: const Icon(
-          Icons.arrow_forward_ios,
-          size: 16,
-          color: Colors.white54,
-        ),
-      ),
-    );
-  }
-}
+        title: Text(title, style: const TextStyle(color: Colors.white, fontSize: 16)),
+        subtitle: Text(subtitle, style: const TextStyle(color: Colors.white54)),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.white54),
+      )
