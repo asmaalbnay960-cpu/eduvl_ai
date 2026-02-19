@@ -1,5 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../config/supabase_config.dart';
 
 class UploadLessonPage extends StatefulWidget {
   const UploadLessonPage({super.key});
@@ -23,10 +29,14 @@ class _UploadLessonPageState extends State<UploadLessonPage> {
 
   /// ===== Quiz dynamic list =====
   final List<_QuizQuestionForm> _questions = [
-    _QuizQuestionForm(), // start with 1 question
+    _QuizQuestionForm(),
   ];
 
   bool _isPublishing = false;
+
+  // ===== 3D Model pick =====
+  Uint8List? _modelBytes;
+  String? _modelFileName;
 
   @override
   void dispose() {
@@ -36,6 +46,62 @@ class _UploadLessonPageState extends State<UploadLessonPage> {
       q.dispose();
     }
     super.dispose();
+  }
+
+  Future<void> _pickModelFile() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.any,          // ✅ بدل custom (عشان ما يعطي Unsupported filter)
+        withData: true,
+        allowMultiple: false,
+      );
+
+      if (result == null || result.files.isEmpty) return;
+
+      final file = result.files.first;
+      final name = (file.name).toLowerCase();
+
+      // ✅ فلترة يدويًا: نقبل glb/obj فقط
+      final ok = name.endsWith('.glb') || name.endsWith('.obj');
+      if (!ok) {
+        _toast("Please choose a .glb or .obj file");
+        return;
+      }
+
+      if (file.bytes == null) {
+        _toast("Couldn't read the file. Try again.");
+        return;
+      }
+
+      setState(() {
+        _modelBytes = file.bytes!;
+        _modelFileName = file.name;
+      });
+
+      _toast("Selected: ${file.name}");
+    } catch (e) {
+      _toast("Pick failed: $e");
+    }
+  }
+
+  /// يرفع الملف إلى Supabase ويرجع رابط public
+  Future<String?> _uploadModelToSupabaseIfAny() async {
+    if (_modelBytes == null || _modelFileName == null) return null;
+
+    final supabase = Supabase.instance.client;
+
+    // مسار مرتب داخل البكت
+    final safeName = _modelFileName!.replaceAll(' ', '_');
+    final filePath = "lessons/${DateTime.now().millisecondsSinceEpoch}_$safeName";
+
+    // رفع الملف
+    await supabase.storage
+        .from('models')
+        .uploadBinary(filePath, _modelBytes!, fileOptions: const FileOptions(upsert: false));
+
+    // لأن البكت Public: نقدر نبني رابط public مباشرة
+    final publicUrl = "${SupabaseConfig.url}/storage/v1/object/public/models/$filePath";
+    return publicUrl;
   }
 
   @override
@@ -136,23 +202,48 @@ class _UploadLessonPageState extends State<UploadLessonPage> {
 
               const SizedBox(height: 22),
 
-              _label("3D Model File (.glb / .obj)"),
-              Container(
-                height: 55,
-                decoration: BoxDecoration(
-                  color: cardColor,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Center(
+              _label("3D Model File (.glb)"),
+              InkWell(
+                onTap: _isPublishing ? null : _pickModelFile,
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  height: 55,
+                  decoration: BoxDecoration(
+                    color: cardColor,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white10),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.folder_open, color: Colors.white70),
-                      SizedBox(width: 8),
-                      Text(
-                        "Choose File",
-                        style: TextStyle(color: Colors.white),
+                      const Icon(Icons.folder_open, color: Colors.white70),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          _modelFileName ?? "Choose .glb File",
+                          style: TextStyle(
+                            color: _modelFileName == null ? Colors.white : const Color(0xFF2ECC71),
+                            fontWeight: FontWeight.w600,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
+                      if (_modelFileName != null) ...[
+                        const SizedBox(width: 10),
+                        IconButton(
+                          tooltip: "Remove",
+                          onPressed: _isPublishing
+                              ? null
+                              : () {
+                            setState(() {
+                              _modelBytes = null;
+                              _modelFileName = null;
+                            });
+                          },
+                          icon: const Icon(Icons.close, color: Colors.white54),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -187,7 +278,9 @@ class _UploadLessonPageState extends State<UploadLessonPage> {
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () {
+                      onPressed: _isPublishing
+                          ? null
+                          : () {
                         setState(() {
                           _questions.add(_QuizQuestionForm());
                         });
@@ -270,6 +363,9 @@ class _UploadLessonPageState extends State<UploadLessonPage> {
     setState(() => _isPublishing = true);
 
     try {
+      // 0) Upload model (optional)
+      final modelUrl = await _uploadModelToSupabaseIfAny();
+
       final firestore = FirebaseFirestore.instance;
 
       // 1) Create lesson doc
@@ -277,7 +373,7 @@ class _UploadLessonPageState extends State<UploadLessonPage> {
         'title': title,
         'category': selectedCategory,
         'description': desc,
-        // TODO later: 'modelUrl': uploaded file URL from Firebase Storage
+        'modelUrl': modelUrl, // ✅ Supabase public URL (or null)
         'createdAt': FieldValue.serverTimestamp(),
         'hasQuiz': quiz.isNotEmpty,
         'quizCount': quiz.length,
@@ -297,7 +393,7 @@ class _UploadLessonPageState extends State<UploadLessonPage> {
           });
         }
 
-        await batch.commit(); // atomic-ish multi writes
+        await batch.commit();
       }
 
       _toast("Lesson published ✅");
@@ -455,12 +551,9 @@ class _QuizQuestionForm {
     final c = optC.text.trim();
     final d = optD.text.trim();
 
-    // If admin تركها فاضية بالكامل: نتجاهلها
     if (q.isEmpty && a.isEmpty && b.isEmpty && c.isEmpty && d.isEmpty) return null;
 
-    // إذا بدأ يكتب لازم يكملها
     if (q.isEmpty || a.isEmpty || b.isEmpty || c.isEmpty || d.isEmpty) {
-      // نعتبرها غير صالحة (بنترك التحقق في الصفحة لو تبين)
       return null;
     }
 

@@ -64,7 +64,8 @@ class ProfilePage extends StatelessWidget {
                 return;
               }
               if (newPass.length < 6) {
-                setState(() => errorText = "New password must be at least 6 characters.");
+                setState(
+                        () => errorText = "New password must be at least 6 characters.");
                 return;
               }
               if (newPass != confirmPass) {
@@ -112,7 +113,8 @@ class ProfilePage extends StatelessWidget {
 
             return Dialog(
               backgroundColor: Colors.transparent,
-              insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
+              insetPadding:
+              const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
               child: Container(
                 decoration: BoxDecoration(
                   color: card,
@@ -202,14 +204,16 @@ class ProfilePage extends StatelessWidget {
                       children: [
                         Expanded(
                           child: OutlinedButton(
-                            onPressed: loading ? null : () => Navigator.pop(dialogCtx),
+                            onPressed:
+                            loading ? null : () => Navigator.pop(dialogCtx),
                             style: OutlinedButton.styleFrom(
                               side: const BorderSide(color: Colors.white24),
                               foregroundColor: Colors.white70,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              padding:
+                              const EdgeInsets.symmetric(vertical: 12),
                             ),
                             child: Text(success ? "Close" : "Cancel"),
                           ),
@@ -224,17 +228,21 @@ class ProfilePage extends StatelessWidget {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              padding:
+                              const EdgeInsets.symmetric(vertical: 12),
                             ),
                             child: loading
                                 ? const SizedBox(
                               width: 18,
                               height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                              ),
                             )
                                 : const Text(
                               "Update",
-                              style: TextStyle(fontWeight: FontWeight.bold),
+                              style:
+                              TextStyle(fontWeight: FontWeight.bold),
                             ),
                           ),
                         ),
@@ -330,16 +338,25 @@ class ProfilePage extends StatelessWidget {
                         const SizedBox(height: 6),
                         Text(
                           "Student ID: $studentId",
-                          style: const TextStyle(color: Colors.white54, fontSize: 14),
+                          style: const TextStyle(
+                            color: Colors.white54,
+                            fontSize: 14,
+                          ),
                         ),
                         const SizedBox(height: 6),
                         Text(
                           email,
-                          style: const TextStyle(color: Colors.white38, fontSize: 13),
+                          style: const TextStyle(
+                            color: Colors.white38,
+                            fontSize: 13,
+                          ),
                         ),
                         const SizedBox(height: 14),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 18,
+                            vertical: 8,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFF1FAF77),
                             borderRadius: BorderRadius.circular(22),
@@ -406,13 +423,15 @@ class ProfilePage extends StatelessWidget {
                         await FirebaseAuth.instance.signOut();
                         if (!context.mounted) return;
 
-                        Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+                        Navigator.of(context, rootNavigator: true)
+                            .pushAndRemoveUntil(
                           MaterialPageRoute(builder: (_) => const RegisterPage()),
                               (route) => false,
                         );
                       },
                       icon: const Icon(Icons.logout, color: Colors.white),
-                      label: const Text("Log Out", style: TextStyle(fontSize: 18)),
+                      label:
+                      const Text("Log Out", style: TextStyle(fontSize: 18)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red,
                         minimumSize: const Size(double.infinity, 55),
@@ -448,7 +467,12 @@ class ProfilePage extends StatelessWidget {
       child: ListTile(
         onTap: onTap,
         leading: Icon(icon, color: const Color(0xFF32D296)),
-        title: Text(title, style: const TextStyle(color: Colors.white, fontSize: 16)),
+        title:
+        Text(title, style: const TextStyle(color: Colors.white, fontSize: 16)),
         subtitle: Text(subtitle, style: const TextStyle(color: Colors.white54)),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.white54),
-      )
+        trailing: const Icon(Icons.arrow_forward_ios,
+            size: 16, color: Colors.white54),
+      ),
+    );
+  }
+}

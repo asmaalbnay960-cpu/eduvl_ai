@@ -64,4 +64,6 @@ lib/config/gemini_key.dart
 .env
 .env.*
 
+lib/config/supabase_config.dart
+
 

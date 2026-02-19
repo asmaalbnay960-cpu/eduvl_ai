@@ -1,14 +1,17 @@
+// lib/student/experiment_3d_page.dart
 import 'package:flutter/material.dart';
-import 'package:eduvl_ai/student/quiz_page.dart';
 import 'package:model_viewer_plus/model_viewer_plus.dart';
+import 'quiz_page.dart';
 
 class Experiment3DPage extends StatefulWidget {
-  final String modelFile;
+  final String lessonId;
+  final String modelSrc;
   final String lessonTitle;
 
   const Experiment3DPage({
     super.key,
-    required this.modelFile,
+    required this.lessonId,
+    required this.modelSrc,
     required this.lessonTitle,
   });
 
@@ -17,10 +20,12 @@ class Experiment3DPage extends StatefulWidget {
 }
 
 class _Experiment3DPageState extends State<Experiment3DPage> {
-  bool _playAnimation = true; // يشتغل تلقائي
+  bool _playAnimation = true;
 
   @override
   Widget build(BuildContext context) {
+    final src = widget.modelSrc;
+
     return Scaffold(
       backgroundColor: const Color(0xFF0F1B2B),
       body: SafeArea(
@@ -45,7 +50,6 @@ class _Experiment3DPageState extends State<Experiment3DPage> {
                   ],
                 ),
               ),
-
               const SizedBox(height: 15),
 
               Text(
@@ -59,7 +63,6 @@ class _Experiment3DPageState extends State<Experiment3DPage> {
 
               const SizedBox(height: 20),
 
-              /// 3D MODEL VIEWER
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
@@ -68,8 +71,8 @@ class _Experiment3DPageState extends State<Experiment3DPage> {
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: ModelViewer(
-                    src: widget.modelFile,
-                    autoPlay: _playAnimation, // الأنيميشن يشتغل تلقائي
+                    src: src, // URL أو asset path
+                    autoPlay: _playAnimation,
                     ar: false,
                     autoRotate: false,
                     cameraControls: true,
@@ -79,26 +82,24 @@ class _Experiment3DPageState extends State<Experiment3DPage> {
               ),
 
               const SizedBox(height: 10),
-
               const Center(
                 child: Text(
                   "Drag to rotate the 3D model...",
-                  style: TextStyle(
-                    color: Colors.white38,
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(color: Colors.white38, fontSize: 14),
                 ),
               ),
 
               const SizedBox(height: 20),
 
-              /// QUIZ BUTTON
               ElevatedButton(
                 onPressed: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => QuizPage(lessonTitle: widget.lessonTitle),
+                      builder: (_) => QuizPage(
+                        lessonId: widget.lessonId,
+                        lessonTitle: widget.lessonTitle,
+                      ),
                     ),
                   );
                 },

@@ -25,7 +25,8 @@ class _RegisterPageState extends State<RegisterPage> {
   String? _error;
 
   // ✅ حطي إيميل الأدمن الموحد هنا (بالضبط)
-  static const String kAdminEmail = "admin@eduvl-ai.com";
+  static const String kAdminEmail = "foradmin@gmail.com";
+
 
   @override
   void initState() {

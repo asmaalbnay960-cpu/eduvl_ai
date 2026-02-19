@@ -1,18 +1,23 @@
+// lib/student/lesson_page.dart
 import 'package:flutter/material.dart';
-import 'experiment_3d_page.dart';
+import 'package:eduvl_ai/student/experiment_3d_page.dart';
 
 class LessonPage extends StatelessWidget {
+  final String lessonId;
   final String lessonTitle;
   final String lessonDescription;
   final String theoryText;
-  final String modelFile;
+
+  // ممكن يكون URL (http...) أو asset path
+  final String modelSrc;
 
   const LessonPage({
     super.key,
+    required this.lessonId,
     required this.lessonTitle,
     required this.lessonDescription,
     required this.theoryText,
-    required this.modelFile,
+    required this.modelSrc,
   });
 
   @override
@@ -21,10 +26,7 @@ class LessonPage extends StatelessWidget {
       backgroundColor: const Color(0xFF0F1B2B),
       appBar: AppBar(
         backgroundColor: const Color(0xFF15263D),
-        title: Text(
-          lessonTitle,
-          style: const TextStyle(color: Colors.white),
-        ),
+        title: Text(lessonTitle, style: const TextStyle(color: Colors.white)),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Padding(
@@ -34,12 +36,8 @@ class LessonPage extends StatelessWidget {
           children: [
             Text(
               lessonDescription,
-              style: const TextStyle(
-                fontSize: 18,
-                color: Colors.white70,
-              ),
+              style: const TextStyle(fontSize: 18, color: Colors.white70),
             ),
-
             const SizedBox(height: 20),
 
             const Text(
@@ -50,20 +48,15 @@ class LessonPage extends StatelessWidget {
                 color: Colors.white,
               ),
             ),
-
             const SizedBox(height: 10),
 
             Text(
               theoryText,
-              style: const TextStyle(
-                fontSize: 16,
-                color: Colors.white60,
-              ),
+              style: const TextStyle(fontSize: 16, color: Colors.white60),
             ),
 
             const Spacer(),
 
-            // 🚀 Start 3D Experiment Button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -80,7 +73,8 @@ class LessonPage extends StatelessWidget {
                     context,
                     MaterialPageRoute(
                       builder: (_) => Experiment3DPage(
-                        modelFile: modelFile,
+                        lessonId: lessonId,
+                        modelSrc: modelSrc,
                         lessonTitle: lessonTitle,
                       ),
                     ),
