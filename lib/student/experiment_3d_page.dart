@@ -5,14 +5,16 @@ import 'quiz_page.dart';
 
 class Experiment3DPage extends StatefulWidget {
   final String lessonId;
-  final String modelSrc;
+  final String modelSrc; // GLB URL or asset path
   final String lessonTitle;
+  final String? iosSrc; // USDZ URL for iOS AR Quick Look (optional)
 
   const Experiment3DPage({
     super.key,
     required this.lessonId,
     required this.modelSrc,
     required this.lessonTitle,
+    this.iosSrc,
   });
 
   @override
@@ -71,21 +73,39 @@ class _Experiment3DPageState extends State<Experiment3DPage> {
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: ModelViewer(
-                    src: src, // URL أو asset path
+                    src: src,
+                    iosSrc: widget.iosSrc,
+                    alt: widget.lessonTitle,
+
+                    // 3D viewer
                     autoPlay: _playAnimation,
-                    ar: false,
                     autoRotate: false,
                     cameraControls: true,
                     backgroundColor: const Color(0xFF15263D),
+
+                    // AR
+                    ar: true,
+                    arModes: const ['scene-viewer', 'webxr', 'quick-look'],
+                    arScale: ArScale.fixed,
+                    arPlacement: ArPlacement.floor,
+
+                    // UI
+                    disableZoom: false,
                   ),
                 ),
               ),
 
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
+
               const Center(
                 child: Text(
-                  "Drag to rotate the 3D model...",
-                  style: TextStyle(color: Colors.white38, fontSize: 14),
+                  "Drag to rotate the 3D model.\nTap the AR icon on the model to open it in augmented reality.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white54,
+                    fontSize: 14,
+                    height: 1.5,
+                  ),
                 ),
               ),
 
@@ -112,7 +132,10 @@ class _Experiment3DPageState extends State<Experiment3DPage> {
                 ),
                 child: const Text(
                   "Take Quiz",
-                  style: TextStyle(fontSize: 18, color: Colors.white),
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ],
