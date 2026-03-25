@@ -19,20 +19,17 @@ class _RegisterPageState extends State<RegisterPage> {
   final _passC = TextEditingController();
   final _confirmC = TextEditingController();
   final _nameC = TextEditingController();
-  final _studentIdC = TextEditingController();
 
   bool _loading = false;
   String? _error;
 
-  // ✅ حطي إيميل الأدمن الموحد هنا (بالضبط)
-  static const String kAdminEmail = "foradmin@gmail.com";
-
+  static const String kAdminEmail = "fedhayousef@gmail.com";
 
   @override
   void initState() {
     super.initState();
     if (widget.forceAdmin) {
-      isLogin = true; // admin login فقط
+      isLogin = true;
     }
   }
 
@@ -42,7 +39,6 @@ class _RegisterPageState extends State<RegisterPage> {
     _passC.dispose();
     _confirmC.dispose();
     _nameC.dispose();
-    _studentIdC.dispose();
     super.dispose();
   }
 
@@ -57,7 +53,6 @@ class _RegisterPageState extends State<RegisterPage> {
     required String uid,
     required String email,
     String? name,
-    String? studentId,
     String role = 'student',
   }) async {
     final ref = FirebaseFirestore.instance.collection('users').doc(uid);
@@ -66,6 +61,7 @@ class _RegisterPageState extends State<RegisterPage> {
     final hasCreatedAt = snap.exists && (snap.data()?['createdAt'] != null);
 
     final payload = <String, dynamic>{
+      'uid': uid,
       'email': email,
       'role': role,
       'lastLoginAt': FieldValue.serverTimestamp(),
@@ -74,7 +70,6 @@ class _RegisterPageState extends State<RegisterPage> {
 
     if (!hasCreatedAt) payload['createdAt'] = FieldValue.serverTimestamp();
     if (name != null) payload['name'] = name;
-    if (studentId != null) payload['studentId'] = studentId;
 
     await ref.set(payload, SetOptions(merge: true));
   }
@@ -119,13 +114,11 @@ class _RegisterPageState extends State<RegisterPage> {
       return;
     }
 
-    // ✅ حماية: وضع الأدمن يسمح فقط بإيميل الأدمن الموحد
     if (adminModeUIOnly && email.toLowerCase() != kAdminEmail.toLowerCase()) {
       setState(() => _error = "Access denied. This page is for the administrator only.");
       return;
     }
 
-    // Register checks (طلاب فقط)
     if (!isLogin && !adminModeUIOnly) {
       if (_confirmC.text != pass) {
         setState(() => _error = "Passwords do not match.");
@@ -133,12 +126,12 @@ class _RegisterPageState extends State<RegisterPage> {
       }
 
       final name = _nameC.text.trim();
-      final sid = _studentIdC.text.trim();
 
-      if (name.isEmpty || sid.isEmpty) {
-        setState(() => _error = "Please enter your name and student ID.");
+      if (name.isEmpty) {
+        setState(() => _error = "Please enter your full name.");
         return;
       }
+
       if (pass.length < 6) {
         setState(() => _error = "Password must be at least 6 characters.");
         return;
@@ -152,7 +145,6 @@ class _RegisterPageState extends State<RegisterPage> {
       UserCredential cred;
 
       if (isLogin) {
-        // Login
         cred = await auth.signInWithEmailAndPassword(
           email: email,
           password: pass,
@@ -169,9 +161,7 @@ class _RegisterPageState extends State<RegisterPage> {
         final userDocRef = FirebaseFirestore.instance.collection('users').doc(uid);
         final userDoc = await userDocRef.get();
 
-        // ✅ إذا سجل دخول من صفحة الأدمن: لازم يكون role=admin
         if (adminModeUIOnly) {
-          // لازم يكون عنده وثيقة role=admin (أفضل أماناً)
           final role = await _getRole(uid);
 
           if (role != 'admin') {
@@ -180,8 +170,8 @@ class _RegisterPageState extends State<RegisterPage> {
             return;
           }
 
-          // تحديث lastLoginAt فقط
           await userDocRef.set({
+            'uid': uid,
             'email': email,
             'role': 'admin',
             'lastLoginAt': FieldValue.serverTimestamp(),
@@ -195,7 +185,6 @@ class _RegisterPageState extends State<RegisterPage> {
           return;
         }
 
-        // ✅ تسجيل دخول الطلاب (الوضع العادي)
         if (!userDoc.exists) {
           await _upsertUserDoc(uid: uid, email: email, role: 'student');
         } else {
@@ -217,7 +206,6 @@ class _RegisterPageState extends State<RegisterPage> {
           );
         }
       } else {
-        // Register (طلاب فقط)
         cred = await auth.createUserWithEmailAndPassword(
           email: email,
           password: pass,
@@ -235,7 +223,6 @@ class _RegisterPageState extends State<RegisterPage> {
           uid: uid,
           email: email,
           name: _nameC.text.trim(),
-          studentId: _studentIdC.text.trim(),
           role: 'student',
         );
 
@@ -297,17 +284,16 @@ class _RegisterPageState extends State<RegisterPage> {
                     const Spacer(),
                   ],
                 ),
-
                 GestureDetector(
                   onLongPress: (!adminModeUIOnly && isLogin && !_loading)
                       ? () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const RegisterPage(forceAdmin: true),
-                      ),
-                    );
-                  }
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const RegisterPage(forceAdmin: true),
+                            ),
+                          );
+                        }
                       : null,
                   child: Text(
                     adminModeUIOnly ? "Admin Login" : (isLogin ? "Login" : "Create Account"),
@@ -318,7 +304,6 @@ class _RegisterPageState extends State<RegisterPage> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 6),
                 Text(
                   adminModeUIOnly
@@ -327,7 +312,6 @@ class _RegisterPageState extends State<RegisterPage> {
                   style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 15),
                 ),
                 const SizedBox(height: 20),
-
                 if (_error != null) ...[
                   Container(
                     width: double.infinity,
@@ -341,7 +325,6 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   const SizedBox(height: 16),
                 ],
-
                 _buildInputField(
                   controller: _emailC,
                   icon: Icons.email,
@@ -349,14 +332,12 @@ class _RegisterPageState extends State<RegisterPage> {
                   keyboardType: TextInputType.emailAddress,
                 ),
                 const SizedBox(height: 18),
-
                 _buildInputField(
                   controller: _passC,
                   icon: Icons.lock,
                   hint: "Password",
                   isPassword: true,
                 ),
-
                 if (!isLogin && !adminModeUIOnly) ...[
                   const SizedBox(height: 18),
                   _buildInputField(
@@ -372,17 +353,8 @@ class _RegisterPageState extends State<RegisterPage> {
                     hint: "Full Name",
                     keyboardType: TextInputType.name,
                   ),
-                  const SizedBox(height: 18),
-                  _buildInputField(
-                    controller: _studentIdC,
-                    icon: Icons.badge,
-                    hint: "Student ID",
-                    keyboardType: TextInputType.number,
-                  ),
                 ],
-
                 const SizedBox(height: 28),
-
                 SizedBox(
                   width: double.infinity,
                   height: 52,
@@ -394,23 +366,21 @@ class _RegisterPageState extends State<RegisterPage> {
                     ),
                     child: _loading
                         ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
                         : Text(
-                      adminModeUIOnly ? "Admin Login" : (isLogin ? "Login" : "Register"),
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                            adminModeUIOnly ? "Admin Login" : (isLogin ? "Login" : "Register"),
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
                 ),
-
                 const SizedBox(height: 14),
-
                 if (!adminModeUIOnly)
                   TextButton(
                     onPressed: _loading ? null : () => setState(() => isLogin = !isLogin),
@@ -423,7 +393,6 @@ class _RegisterPageState extends State<RegisterPage> {
                       ),
                     ),
                   ),
-
                 if (isLogin) ...[
                   const SizedBox(height: 2),
                   TextButton(

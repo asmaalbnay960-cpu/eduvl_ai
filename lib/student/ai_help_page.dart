@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../config/gemini_key.dart';
 
@@ -15,7 +17,7 @@ class _AIHelpPageState extends State<AIHelpPage> {
   final List<Map<String, String>> _messages = [
     {
       "sender": "ai",
-      "text": "Hello! I am your EduAI Assistant.\nHow can I help you today? "
+      "text": "Hello! I am your EduAI Assistant.\nHow can I help you today?"
     }
   ];
 
@@ -60,6 +62,18 @@ class _AIHelpPageState extends State<AIHelpPage> {
   Future<void> sendMessage() async {
     final text = _controller.text.trim();
     if (text.isEmpty || _isLoading) return;
+
+    // تسجيل أن الطالب استخدم AI
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'usedAI': true,
+        }, SetOptions(merge: true));
+      }
+    } catch (e) {
+      debugPrint("AI usage tracking error: $e");
+    }
 
     setState(() {
       _messages.add({"sender": "user", "text": text});
@@ -110,12 +124,15 @@ class _AIHelpPageState extends State<AIHelpPage> {
                   final isUser = msg["sender"] == "user";
 
                   return Align(
-                    alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+                    alignment:
+                        isUser ? Alignment.centerRight : Alignment.centerLeft,
                     child: Container(
                       margin: const EdgeInsets.symmetric(vertical: 6),
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: isUser ? const Color(0xFF1FAF77) : const Color(0xFF243B55),
+                        color: isUser
+                            ? const Color(0xFF1FAF77)
+                            : const Color(0xFF243B55),
                         borderRadius: BorderRadius.circular(14),
                       ),
                       constraints: const BoxConstraints(maxWidth: 280),
@@ -148,7 +165,8 @@ class _AIHelpPageState extends State<AIHelpPage> {
                       onSubmitted: (_) => sendMessage(),
                       decoration: InputDecoration(
                         hintText: "Type your question...",
-                        hintStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
+                        hintStyle:
+                            TextStyle(color: Colors.white.withOpacity(0.6)),
                         border: InputBorder.none,
                       ),
                     ),
@@ -159,10 +177,10 @@ class _AIHelpPageState extends State<AIHelpPage> {
                       color: _isLoading ? Colors.grey : Colors.blueAccent,
                     ),
                     onPressed: _isLoading ? null : sendMessage,
-                  )
+                  ),
                 ],
               ),
-            )
+            ),
           ],
         ),
       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'upload_lesson_page.dart';
 import 'content_management_page.dart';
 import '../auth/register_page.dart';
@@ -10,12 +11,9 @@ class AdminDashboardPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0F1B2B),
-
-      // ✅ AppBar معدل
       appBar: AppBar(
         backgroundColor: const Color(0xFF15263D),
-        centerTitle: false, // صار يسار
-
+        centerTitle: false,
         title: const Text(
           "Admin Dashboard",
           style: TextStyle(
@@ -24,7 +22,6 @@ class AdminDashboardPage extends StatelessWidget {
             fontSize: 20,
           ),
         ),
-
         actions: [
           IconButton(
             tooltip: "Log Out",
@@ -32,13 +29,12 @@ class AdminDashboardPage extends StatelessWidget {
             onPressed: () {
               Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(builder: (_) => const RegisterPage()),
-                    (route) => false,
+                (route) => false,
               );
             },
           ),
         ],
       ),
-
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -51,7 +47,6 @@ class AdminDashboardPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-
           GridView.count(
             crossAxisCount: 2,
             shrinkWrap: true,
@@ -60,15 +55,13 @@ class AdminDashboardPage extends StatelessWidget {
             physics: const NeverScrollableScrollPhysics(),
             childAspectRatio: 1.25,
             children: const [
-              _StatCard(title: "Students", value: "120", icon: Icons.people),
-              _StatCard(title: "Lessons", value: "18", icon: Icons.menu_book),
-              _StatCard(title: "Quizzes", value: "42", icon: Icons.quiz),
-              _StatCard(title: "AI Usage", value: "389", icon: Icons.smart_toy),
+              _StudentsStatCard(),
+              _LessonsStatCard(),
+              _QuizzesStatCard(),
+              _AiUsageStatCard(),
             ],
           ),
-
           const SizedBox(height: 30),
-
           const Text(
             "Quick Actions",
             style: TextStyle(
@@ -78,7 +71,6 @@ class AdminDashboardPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-
           _actionButton(
             icon: Icons.add_box,
             label: "Add New Lesson",
@@ -91,7 +83,6 @@ class AdminDashboardPage extends StatelessWidget {
               );
             },
           ),
-
           _actionButton(
             icon: Icons.settings,
             label: "Manage Content",
@@ -104,7 +95,6 @@ class AdminDashboardPage extends StatelessWidget {
               );
             },
           ),
-
           const SizedBox(height: 20),
         ],
       ),
@@ -144,6 +134,165 @@ class AdminDashboardPage extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _StudentsStatCard extends StatelessWidget {
+  const _StudentsStatCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance.collection('users').snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return const _StatCard(
+            title: "Students",
+            value: "0",
+            icon: Icons.people,
+          );
+        }
+
+        if (!snapshot.hasData) {
+          return const _StatCard(
+            title: "Students",
+            value: "...",
+            icon: Icons.people,
+          );
+        }
+
+        final docs = snapshot.data!.docs;
+        final count = docs.where((doc) {
+          final data = doc.data();
+          final role = (data['role'] ?? '').toString().trim().toLowerCase();
+          return role == 'student';
+        }).length;
+
+        return _StatCard(
+          title: "Students",
+          value: count.toString(),
+          icon: Icons.people,
+        );
+      },
+    );
+  }
+}
+
+class _LessonsStatCard extends StatelessWidget {
+  const _LessonsStatCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance.collection('lessons').snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return const _StatCard(
+            title: "Lessons",
+            value: "0",
+            icon: Icons.menu_book,
+          );
+        }
+
+        if (!snapshot.hasData) {
+          return const _StatCard(
+            title: "Lessons",
+            value: "...",
+            icon: Icons.menu_book,
+          );
+        }
+
+        final count = snapshot.data!.docs.length;
+
+        return _StatCard(
+          title: "Lessons",
+          value: count.toString(),
+          icon: Icons.menu_book,
+        );
+      },
+    );
+  }
+}
+
+class _QuizzesStatCard extends StatelessWidget {
+  const _QuizzesStatCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance.collection('lessons').snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return const _StatCard(
+            title: "Quizzes",
+            value: "0",
+            icon: Icons.quiz,
+          );
+        }
+
+        if (!snapshot.hasData) {
+          return const _StatCard(
+            title: "Quizzes",
+            value: "...",
+            icon: Icons.quiz,
+          );
+        }
+
+        final docs = snapshot.data!.docs;
+        final count = docs.where((doc) {
+          final data = doc.data();
+          return data['hasQuiz'] == true;
+        }).length;
+
+        return _StatCard(
+          title: "Quizzes",
+          value: count.toString(),
+          icon: Icons.quiz,
+        );
+      },
+    );
+  }
+}
+
+class _AiUsageStatCard extends StatelessWidget {
+  const _AiUsageStatCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance.collection('users').snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return const _StatCard(
+            title: "AI Usage",
+            value: "0",
+            icon: Icons.smart_toy,
+          );
+        }
+
+        if (!snapshot.hasData) {
+          return const _StatCard(
+            title: "AI Usage",
+            value: "...",
+            icon: Icons.smart_toy,
+          );
+        }
+
+        final docs = snapshot.data!.docs;
+        final count = docs.where((doc) {
+          final data = doc.data();
+          final role = (data['role'] ?? '').toString().trim().toLowerCase();
+          final usedAI = data['usedAI'] == true;
+          return role == 'student' && usedAI;
+        }).length;
+
+        return _StatCard(
+          title: "AI Usage",
+          value: count.toString(),
+          icon: Icons.smart_toy,
+        );
+      },
     );
   }
 }

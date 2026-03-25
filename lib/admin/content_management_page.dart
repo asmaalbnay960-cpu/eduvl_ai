@@ -1,8 +1,72 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'upload_lesson_page.dart';
 
 class ContentManagementPage extends StatelessWidget {
   const ContentManagementPage({super.key});
+
+  Future<void> _deleteLesson(
+    BuildContext context,
+    String lessonId,
+    String lessonTitle,
+  ) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF1C2A3A),
+        title: const Text(
+          "Delete Lesson",
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          'Are you sure you want to delete "$lessonTitle"?\n\nThis will also delete all quiz questions for this lesson.',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      final firestore = FirebaseFirestore.instance;
+      final lessonRef = firestore.collection('lessons').doc(lessonId);
+
+      // حذف quizQuestions أولًا
+      final quizSnapshot = await lessonRef.collection('quizQuestions').get();
+
+      if (quizSnapshot.docs.isNotEmpty) {
+        final batch = firestore.batch();
+        for (final doc in quizSnapshot.docs) {
+          batch.delete(doc.reference);
+        }
+        await batch.commit();
+      }
+
+      // حذف الدرس نفسه
+      await lessonRef.delete();
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Deleted "$lessonTitle" successfully')),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Delete failed: $e")),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -12,15 +76,12 @@ class ContentManagementPage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: background,
-
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
-              /// ===== Back Header (مثل UploadLessonPage) =====
               GestureDetector(
                 onTap: () => Navigator.pop(context),
                 child: const Row(
@@ -37,9 +98,7 @@ class ContentManagementPage extends StatelessWidget {
                   ],
                 ),
               ),
-
               const SizedBox(height: 20),
-
               const Text(
                 "Content Management",
                 style: TextStyle(
@@ -48,26 +107,79 @@ class ContentManagementPage extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-
-              const SizedBox(height: 25),
-
-              _lessonCard(
-                title: "Motion Fundamentals",
-                subtitle: "Physics 101 | 3D Simulation",
-                statusColor: accentGreen,
-              ),
-              _lessonCard(
-                title: "Orbital Gravity",
-                subtitle: "Space Science | 3D Simulation",
-                statusColor: Colors.orangeAccent,
-              ),
-              _lessonCard(
-                title: "Energy Conservation",
-                subtitle: "Draft | Needs QA",
-                statusColor: Colors.grey,
-              ),
-
               const SizedBox(height: 20),
+
+              Expanded(
+                child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                  stream: FirebaseFirestore.instance
+                      .collection('lessons')
+                      .orderBy('createdAt', descending: true)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: CircularProgressIndicator(),
+                      );
+                    }
+
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Text(
+                          "Failed to load lessons",
+                          style: TextStyle(color: Colors.red.shade300),
+                        ),
+                      );
+                    }
+
+                    final docs = snapshot.data?.docs ?? [];
+
+                    if (docs.isEmpty) {
+                      return const Center(
+                        child: Text(
+                          "No lessons found yet",
+                          style: TextStyle(color: Colors.white70, fontSize: 16),
+                        ),
+                      );
+                    }
+
+                    return ListView.builder(
+                      itemCount: docs.length,
+                      itemBuilder: (context, index) {
+                        final doc = docs[index];
+                        final data = doc.data();
+
+                        final title = (data['title'] ?? 'Untitled Lesson').toString();
+                        final category = (data['category'] ?? 'No Category').toString();
+                        final description =
+                            (data['description'] ?? 'No Description').toString();
+                        final quizCount = (data['quizCount'] ?? 0) as int;
+                        final hasQuiz = (data['hasQuiz'] ?? false) as bool;
+
+                        final subtitle = hasQuiz
+                            ? "$category | Quiz: $quizCount"
+                            : "$category | No Quiz";
+
+                        return _lessonCard(
+                          title: title,
+                          subtitle: subtitle,
+                          description: description,
+                          statusColor: accentGreen,
+                          onEdit: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("Edit feature will be added next"),
+                              ),
+                            );
+                          },
+                          onDelete: () => _deleteLesson(context, doc.id, title),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+
+              const SizedBox(height: 18),
 
               SizedBox(
                 width: double.infinity,
@@ -104,7 +216,10 @@ class ContentManagementPage extends StatelessWidget {
   static Widget _lessonCard({
     required String title,
     required String subtitle,
+    required String description,
     required Color statusColor,
+    required VoidCallback onEdit,
+    required VoidCallback onDelete,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -114,6 +229,7 @@ class ContentManagementPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             child: Column(
@@ -135,16 +251,30 @@ class ContentManagementPage extends StatelessWidget {
                     fontSize: 14,
                   ),
                 ),
+                const SizedBox(height: 8),
+                Text(
+                  description,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 13,
+                  ),
+                ),
               ],
             ),
           ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.edit, color: Colors.blueAccent),
-          ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.delete, color: Colors.redAccent),
+          Column(
+            children: [
+              IconButton(
+                onPressed: onEdit,
+                icon: const Icon(Icons.edit, color: Colors.blueAccent),
+              ),
+              IconButton(
+                onPressed: onDelete,
+                icon: const Icon(Icons.delete, color: Colors.redAccent),
+              ),
+            ],
           ),
         ],
       ),
