@@ -6,7 +6,6 @@ class LessonPage extends StatelessWidget {
   final String lessonId;
   final String lessonTitle;
   final String lessonDescription;
-  final String theoryText;
 
   // ممكن يكون URL (http...) أو asset path
   final String modelSrc;
@@ -16,7 +15,6 @@ class LessonPage extends StatelessWidget {
     required this.lessonId,
     required this.lessonTitle,
     required this.lessonDescription,
-    required this.theoryText,
     required this.modelSrc,
   });
 
@@ -37,22 +35,6 @@ class LessonPage extends StatelessWidget {
             Text(
               lessonDescription,
               style: const TextStyle(fontSize: 18, color: Colors.white70),
-            ),
-            const SizedBox(height: 20),
-
-            const Text(
-              "Theory Overview",
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 10),
-
-            Text(
-              theoryText,
-              style: const TextStyle(fontSize: 16, color: Colors.white60),
             ),
 
             const Spacer(),

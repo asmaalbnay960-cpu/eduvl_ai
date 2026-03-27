@@ -6,10 +6,10 @@ class ContentManagementPage extends StatelessWidget {
   const ContentManagementPage({super.key});
 
   Future<void> _deleteLesson(
-    BuildContext context,
-    String lessonId,
-    String lessonTitle,
-  ) async {
+      BuildContext context,
+      String lessonId,
+      String lessonTitle,
+      ) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -42,7 +42,6 @@ class ContentManagementPage extends StatelessWidget {
       final firestore = FirebaseFirestore.instance;
       final lessonRef = firestore.collection('lessons').doc(lessonId);
 
-      // حذف quizQuestions أولًا
       final quizSnapshot = await lessonRef.collection('quizQuestions').get();
 
       if (quizSnapshot.docs.isNotEmpty) {
@@ -53,7 +52,6 @@ class ContentManagementPage extends StatelessWidget {
         await batch.commit();
       }
 
-      // حذف الدرس نفسه
       await lessonRef.delete();
 
       if (!context.mounted) return;
@@ -71,7 +69,6 @@ class ContentManagementPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const Color background = Color(0xFF0F1B2B);
-    const Color cardColor = Color(0xFF1C2A3A);
     const Color accentGreen = Color(0xFF2ECC71);
 
     return Scaffold(
@@ -148,11 +145,19 @@ class ContentManagementPage extends StatelessWidget {
                         final doc = docs[index];
                         final data = doc.data();
 
-                        final title = (data['title'] ?? 'Untitled Lesson').toString();
-                        final category = (data['category'] ?? 'No Category').toString();
+                        final title =
+                        (data['title'] ?? 'Untitled Lesson').toString();
+                        final category =
+                        (data['category'] ?? 'No Category').toString();
                         final description =
-                            (data['description'] ?? 'No Description').toString();
-                        final quizCount = (data['quizCount'] ?? 0) as int;
+                        (data['description'] ?? 'No Description')
+                            .toString();
+                        final quizCountRaw = data['quizCount'];
+                        final int quizCount = quizCountRaw is int
+                            ? quizCountRaw
+                            : (quizCountRaw is num
+                            ? quizCountRaw.toInt()
+                            : 0);
                         final hasQuiz = (data['hasQuiz'] ?? false) as bool;
 
                         final subtitle = hasQuiz
@@ -165,13 +170,18 @@ class ContentManagementPage extends StatelessWidget {
                           description: description,
                           statusColor: accentGreen,
                           onEdit: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text("Edit feature will be added next"),
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => UploadLessonPage(
+                                  lessonId: doc.id,
+                                  existingData: data,
+                                ),
                               ),
                             );
                           },
-                          onDelete: () => _deleteLesson(context, doc.id, title),
+                          onDelete: () =>
+                              _deleteLesson(context, doc.id, title),
                         );
                       },
                     );

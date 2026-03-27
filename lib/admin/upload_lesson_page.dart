@@ -8,7 +8,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/supabase_config.dart';
 
 class UploadLessonPage extends StatefulWidget {
-  const UploadLessonPage({super.key});
+  final String? lessonId;
+  final Map<String, dynamic>? existingData;
+
+  const UploadLessonPage({
+    super.key,
+    this.lessonId,
+    this.existingData,
+  });
 
   @override
   State<UploadLessonPage> createState() => _UploadLessonPageState();
@@ -27,16 +34,39 @@ class _UploadLessonPageState extends State<UploadLessonPage> {
   final TextEditingController _titleCtrl = TextEditingController();
   final TextEditingController _descCtrl = TextEditingController();
 
-  /// ===== Quiz dynamic list =====
   final List<_QuizQuestionForm> _questions = [
     _QuizQuestionForm(),
   ];
 
   bool _isPublishing = false;
 
-  // ===== 3D Model pick =====
   Uint8List? _modelBytes;
   String? _modelFileName;
+  String? _existingModelUrl;
+
+  bool get isEditMode => widget.lessonId != null;
+
+  @override
+  void initState() {
+    super.initState();
+
+    final data = widget.existingData;
+    if (data != null) {
+      _titleCtrl.text = (data['title'] ?? '').toString();
+      _descCtrl.text = (data['description'] ?? '').toString();
+
+      final existingCategory = (data['category'] ?? 'Select Category').toString();
+      selectedCategory =
+      categories.contains(existingCategory) ? existingCategory : "Select Category";
+
+      _existingModelUrl = data['modelUrl']?.toString();
+
+      // ملاحظة:
+      // الكويز الحالي لا نقوم بجلبه للتعديل هنا.
+      // نحافظ على نفس التصميم وسهولة تعديل محتوى الدرس نفسه.
+      // لاحقًا نقدر نضيف Edit Quiz بشكل منفصل لو تبين.
+    }
+  }
 
   @override
   void dispose() {
@@ -51,7 +81,7 @@ class _UploadLessonPageState extends State<UploadLessonPage> {
   Future<void> _pickModelFile() async {
     try {
       final result = await FilePicker.platform.pickFiles(
-        type: FileType.any,          // ✅ بدل custom (عشان ما يعطي Unsupported filter)
+        type: FileType.any,
         withData: true,
         allowMultiple: false,
       );
@@ -59,9 +89,8 @@ class _UploadLessonPageState extends State<UploadLessonPage> {
       if (result == null || result.files.isEmpty) return;
 
       final file = result.files.first;
-      final name = (file.name).toLowerCase();
+      final name = file.name.toLowerCase();
 
-      // ✅ فلترة يدويًا: نقبل glb/obj فقط
       final ok = name.endsWith('.glb') || name.endsWith('.obj');
       if (!ok) {
         _toast("Please choose a .glb or .obj file");
@@ -84,23 +113,22 @@ class _UploadLessonPageState extends State<UploadLessonPage> {
     }
   }
 
-  /// يرفع الملف إلى Supabase ويرجع رابط public
   Future<String?> _uploadModelToSupabaseIfAny() async {
     if (_modelBytes == null || _modelFileName == null) return null;
 
     final supabase = Supabase.instance.client;
 
-    // مسار مرتب داخل البكت
     final safeName = _modelFileName!.replaceAll(' ', '_');
     final filePath = "lessons/${DateTime.now().millisecondsSinceEpoch}_$safeName";
 
-    // رفع الملف
-    await supabase.storage
-        .from('models')
-        .uploadBinary(filePath, _modelBytes!, fileOptions: const FileOptions(upsert: false));
+    await supabase.storage.from('models').uploadBinary(
+      filePath,
+      _modelBytes!,
+      fileOptions: const FileOptions(upsert: false),
+    );
 
-    // لأن البكت Public: نقدر نبني رابط public مباشرة
-    final publicUrl = "${SupabaseConfig.url}/storage/v1/object/public/models/$filePath";
+    final publicUrl =
+        "${SupabaseConfig.url}/storage/v1/object/public/models/$filePath";
     return publicUrl;
   }
 
@@ -142,9 +170,9 @@ class _UploadLessonPageState extends State<UploadLessonPage> {
               ),
               const SizedBox(height: 20),
 
-              const Text(
-                "Upload New Lesson",
-                style: TextStyle(
+              Text(
+                isEditMode ? "Edit Lesson" : "Upload New Lesson",
+                style: const TextStyle(
                   color: Color(0xFF2ECC71),
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -219,11 +247,18 @@ class _UploadLessonPageState extends State<UploadLessonPage> {
                     children: [
                       const Icon(Icons.folder_open, color: Colors.white70),
                       const SizedBox(width: 8),
-                      Flexible(
+                      Expanded(
                         child: Text(
-                          _modelFileName ?? "Choose .glb File",
+                          _modelFileName ??
+                              (isEditMode
+                                  ? (_existingModelUrl != null
+                                  ? "Current model saved (choose file to replace)"
+                                  : "No model linked yet")
+                                  : "Choose .glb File"),
                           style: TextStyle(
-                            color: _modelFileName == null ? Colors.white : const Color(0xFF2ECC71),
+                            color: (_modelFileName != null || _existingModelUrl != null)
+                                ? const Color(0xFF2ECC71)
+                                : Colors.white,
                             fontWeight: FontWeight.w600,
                           ),
                           overflow: TextOverflow.ellipsis,
@@ -251,56 +286,73 @@ class _UploadLessonPageState extends State<UploadLessonPage> {
 
               const SizedBox(height: 26),
 
-              /// ===== Quiz section =====
-              _sectionTitle("Quiz Questions (Optional)"),
+              _sectionTitle(
+                isEditMode
+                    ? "Quiz Questions (editing quiz is not enabled yet)"
+                    : "Quiz Questions (Optional)",
+              ),
               const SizedBox(height: 10),
 
-              ...List.generate(_questions.length, (i) {
-                final q = _questions[i];
-                return _questionCard(
-                  index: i,
-                  q: q,
-                  cardColor: cardColor,
-                  onRemove: _questions.length == 1
-                      ? null
-                      : () {
-                    setState(() {
-                      final removed = _questions.removeAt(i);
-                      removed.dispose();
-                    });
-                  },
-                );
-              }),
-
-              const SizedBox(height: 12),
-
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _isPublishing
-                          ? null
-                          : () {
-                        setState(() {
-                          _questions.add(_QuizQuestionForm());
-                        });
-                      },
-                      icon: const Icon(Icons.add, color: Colors.white),
-                      label: const Text(
-                        "Add Question",
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.white24),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+              if (!isEditMode) ...[
+                ...List.generate(_questions.length, (i) {
+                  final q = _questions[i];
+                  return _questionCard(
+                    index: i,
+                    q: q,
+                    cardColor: cardColor,
+                    onRemove: _questions.length == 1
+                        ? null
+                        : () {
+                      setState(() {
+                        final removed = _questions.removeAt(i);
+                        removed.dispose();
+                      });
+                    },
+                  );
+                }),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _isPublishing
+                            ? null
+                            : () {
+                          setState(() {
+                            _questions.add(_QuizQuestionForm());
+                          });
+                        },
+                        icon: const Icon(Icons.add, color: Colors.white),
+                        label: const Text(
+                          "Add Question",
+                          style: TextStyle(color: Colors.white),
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.white24),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
                       ),
                     ),
+                  ],
+                ),
+              ] else ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: cardColor,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colors.white10),
                   ),
-                ],
-              ),
+                  child: const Text(
+                    "You can edit lesson title, category, description, and replace the 3D model from this page.\nQuiz editing can be added next in a separate step.",
+                    style: TextStyle(color: Colors.white70, height: 1.5),
+                  ),
+                ),
+              ],
 
               const SizedBox(height: 26),
 
@@ -317,7 +369,9 @@ class _UploadLessonPageState extends State<UploadLessonPage> {
                   )
                       : const Icon(Icons.check_circle, color: Colors.white),
                   label: Text(
-                    _isPublishing ? "Publishing..." : "Publish Lesson",
+                    _isPublishing
+                        ? (isEditMode ? "Updating..." : "Publishing...")
+                        : (isEditMode ? "Update Lesson" : "Publish Lesson"),
                     style: const TextStyle(fontSize: 18),
                   ),
                   style: ElevatedButton.styleFrom(
@@ -335,7 +389,6 @@ class _UploadLessonPageState extends State<UploadLessonPage> {
     );
   }
 
-  /// ===== Firestore publish =====
   Future<void> _publishLessonWithQuiz() async {
     final title = _titleCtrl.text.trim();
     final desc = _descCtrl.text.trim();
@@ -353,50 +406,66 @@ class _UploadLessonPageState extends State<UploadLessonPage> {
       return;
     }
 
-    // Build quiz list (only valid questions)
     final quiz = <_QuizQuestionData>[];
-    for (final q in _questions) {
-      final data = q.toDataOrNull();
-      if (data != null) quiz.add(data);
+    if (!isEditMode) {
+      for (final q in _questions) {
+        final data = q.toDataOrNull();
+        if (data != null) quiz.add(data);
+      }
     }
 
     setState(() => _isPublishing = true);
 
     try {
-      // 0) Upload model (optional)
       final modelUrl = await _uploadModelToSupabaseIfAny();
-
       final firestore = FirebaseFirestore.instance;
 
-      // 1) Create lesson doc
-      final lessonRef = await firestore.collection('lessons').add({
-        'title': title,
-        'category': selectedCategory,
-        'description': desc,
-        'modelUrl': modelUrl, // ✅ Supabase public URL (or null)
-        'createdAt': FieldValue.serverTimestamp(),
-        'hasQuiz': quiz.isNotEmpty,
-        'quizCount': quiz.length,
-      });
+      if (isEditMode) {
+        final lessonRef = firestore.collection('lessons').doc(widget.lessonId);
 
-      // 2) Save quiz as subcollection
-      if (quiz.isNotEmpty) {
-        final batch = firestore.batch();
+        final updateData = <String, dynamic>{
+          'title': title,
+          'category': selectedCategory,
+          'description': desc,
+        };
 
-        for (final q in quiz) {
-          final qRef = lessonRef.collection('quizQuestions').doc();
-          batch.set(qRef, {
-            'question': q.question,
-            'options': q.options, // List<String>
-            'correctIndex': q.correctIndex, // int
-            'createdAt': FieldValue.serverTimestamp(),
-          });
+        if (modelUrl != null) {
+          updateData['modelUrl'] = modelUrl;
         }
 
-        await batch.commit();
+        await lessonRef.update(updateData);
+
+        _toast("Lesson updated ✅");
+      } else {
+        final lessonRef = await firestore.collection('lessons').add({
+          'title': title,
+          'category': selectedCategory,
+          'description': desc,
+          'modelUrl': modelUrl,
+          'createdAt': FieldValue.serverTimestamp(),
+          'hasQuiz': quiz.isNotEmpty,
+          'quizCount': quiz.length,
+        });
+
+        if (quiz.isNotEmpty) {
+          final batch = firestore.batch();
+
+          for (final q in quiz) {
+            final qRef = lessonRef.collection('quizQuestions').doc();
+            batch.set(qRef, {
+              'question': q.question,
+              'options': q.options,
+              'correctIndex': q.correctIndex,
+              'createdAt': FieldValue.serverTimestamp(),
+            });
+          }
+
+          await batch.commit();
+        }
+
+        _toast("Lesson published ✅");
       }
 
-      _toast("Lesson published ✅");
       if (mounted) Navigator.pop(context);
     } catch (e) {
       _toast("Failed: $e");
@@ -457,12 +526,9 @@ class _UploadLessonPageState extends State<UploadLessonPage> {
             ],
           ),
           const SizedBox(height: 8),
-
           _label("Question"),
           _inputField(q.questionCtrl, "Write the question here..."),
-
           const SizedBox(height: 10),
-
           _label("Options (4)"),
           _inputField(q.optA, "Option A"),
           const SizedBox(height: 8),
@@ -471,9 +537,7 @@ class _UploadLessonPageState extends State<UploadLessonPage> {
           _inputField(q.optC, "Option C"),
           const SizedBox(height: 8),
           _inputField(q.optD, "Option D"),
-
           const SizedBox(height: 12),
-
           _label("Correct Answer"),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -487,10 +551,22 @@ class _UploadLessonPageState extends State<UploadLessonPage> {
               dropdownColor: const Color(0xFF162232),
               underline: const SizedBox(),
               items: const [
-                DropdownMenuItem(value: 0, child: Text("A", style: TextStyle(color: Colors.white))),
-                DropdownMenuItem(value: 1, child: Text("B", style: TextStyle(color: Colors.white))),
-                DropdownMenuItem(value: 2, child: Text("C", style: TextStyle(color: Colors.white))),
-                DropdownMenuItem(value: 3, child: Text("D", style: TextStyle(color: Colors.white))),
+                DropdownMenuItem(
+                  value: 0,
+                  child: Text("A", style: TextStyle(color: Colors.white)),
+                ),
+                DropdownMenuItem(
+                  value: 1,
+                  child: Text("B", style: TextStyle(color: Colors.white)),
+                ),
+                DropdownMenuItem(
+                  value: 2,
+                  child: Text("C", style: TextStyle(color: Colors.white)),
+                ),
+                DropdownMenuItem(
+                  value: 3,
+                  child: Text("D", style: TextStyle(color: Colors.white)),
+                ),
               ],
               onChanged: (v) {
                 if (v == null) return;
@@ -508,7 +584,8 @@ class _UploadLessonPageState extends State<UploadLessonPage> {
     child: Text(text, style: const TextStyle(color: Colors.white70)),
   );
 
-  Widget _inputField(TextEditingController controller, String hint, {int maxLines = 1}) {
+  Widget _inputField(TextEditingController controller, String hint,
+      {int maxLines = 1}) {
     return TextField(
       controller: controller,
       maxLines: maxLines,
@@ -527,7 +604,6 @@ class _UploadLessonPageState extends State<UploadLessonPage> {
   }
 }
 
-/// ===== Helper classes =====
 class _QuizQuestionForm {
   final TextEditingController questionCtrl = TextEditingController();
   final TextEditingController optA = TextEditingController();
@@ -551,7 +627,9 @@ class _QuizQuestionForm {
     final c = optC.text.trim();
     final d = optD.text.trim();
 
-    if (q.isEmpty && a.isEmpty && b.isEmpty && c.isEmpty && d.isEmpty) return null;
+    if (q.isEmpty && a.isEmpty && b.isEmpty && c.isEmpty && d.isEmpty) {
+      return null;
+    }
 
     if (q.isEmpty || a.isEmpty || b.isEmpty || c.isEmpty || d.isEmpty) {
       return null;
@@ -569,6 +647,7 @@ class _QuizQuestionData {
   final String question;
   final List<String> options;
   final int correctIndex;
+
   _QuizQuestionData({
     required this.question,
     required this.options,
