@@ -43,7 +43,6 @@ class _MainNavPageState extends State<MainNavPage> {
 
   void _onTap(int newIndex) {
     if (newIndex == _index) {
-      // إذا ضغطتِ على نفس التبويب: يرجّع أول صفحة داخل التبويب
       _navigatorKeys[newIndex].currentState?.popUntil((r) => r.isFirst);
     } else {
       setState(() => _index = newIndex);
@@ -64,19 +63,54 @@ class _MainNavPageState extends State<MainNavPage> {
       child: Scaffold(
         backgroundColor: const Color(0xFF0F1B2B),
         body: IndexedStack(index: _index, children: pages),
-        bottomNavigationBar: BottomNavigationBar(
-          currentIndex: _index,
-          backgroundColor: const Color(0xFF15263D),
-          selectedItemColor: Colors.green,
-          unselectedItemColor: Colors.white54,
-          type: BottomNavigationBarType.fixed,
-          onTap: _onTap,
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-            BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: "Progress"),
-            BottomNavigationBarItem(icon: Icon(Icons.smart_toy_outlined), label: "AI Guide"),
-            BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
-          ],
+        bottomNavigationBar: Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFF15263D),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 18,
+                offset: Offset(0, -4),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            child: BottomNavigationBar(
+              currentIndex: _index,
+              backgroundColor: const Color(0xFF15263D),
+              selectedItemColor: const Color(0xFF2ECC71),
+              unselectedItemColor: Colors.white54,
+              type: BottomNavigationBarType.fixed,
+              elevation: 0,
+              selectedFontSize: 12,
+              unselectedFontSize: 11,
+              onTap: _onTap,
+              items: const [
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.home_rounded),
+                  activeIcon: Icon(Icons.home_filled),
+                  label: "Home",
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.bar_chart_rounded),
+                  activeIcon: Icon(Icons.insert_chart_rounded),
+                  label: "Progress",
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.smart_toy_outlined),
+                  activeIcon: Icon(Icons.smart_toy),
+                  label: "AI Guide",
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.person_outline_rounded),
+                  activeIcon: Icon(Icons.person),
+                  label: "Profile",
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

@@ -13,7 +13,7 @@ class ProfilePage extends StatelessWidget {
     if (user == null) return const RegisterPage();
 
     final userDocStream =
-        FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots();
+    FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots();
 
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
       stream: userDocStream,
@@ -21,7 +21,13 @@ class ProfilePage extends StatelessWidget {
         if (snap.connectionState == ConnectionState.waiting) {
           return const Material(
             color: Color(0xFF0F1B2B),
-            child: SafeArea(child: Center(child: CircularProgressIndicator())),
+            child: SafeArea(
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: Color(0xFF2ECC71),
+                ),
+              ),
+            ),
           );
         }
 
@@ -46,19 +52,17 @@ class ProfilePage extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  const Divider(color: Colors.white24),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 24),
 
-                  /// 👤 Profile Info
                   Center(
                     child: Column(
                       children: [
                         Container(
-                          width: 95,
-                          height: 95,
+                          width: 92,
+                          height: 92,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
+                            color: const Color(0xFF15263D),
                             border: Border.all(
                               color: const Color(0xFF32D296),
                               width: 2,
@@ -66,7 +70,7 @@ class ProfilePage extends StatelessWidget {
                           ),
                           child: const Icon(
                             Icons.person,
-                            size: 50,
+                            size: 48,
                             color: Color(0xFF32D296),
                           ),
                         ),
@@ -83,9 +87,10 @@ class ProfilePage extends StatelessWidget {
                         Text(
                           email,
                           style: const TextStyle(
-                            color: Colors.white38,
+                            color: Colors.white54,
                             fontSize: 13,
                           ),
+                          textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 14),
                         Container(
@@ -110,7 +115,7 @@ class ProfilePage extends StatelessWidget {
                     ),
                   ),
 
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 36),
 
                   const Text(
                     "General Settings",
@@ -120,21 +125,17 @@ class ProfilePage extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  const Divider(color: Colors.white24),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
 
-                  /// ✅ فقط About App
-                  settingsTile(
+                  _settingsTile(
                     icon: Icons.info_outline,
                     title: "About App",
-                    subtitle: "EduVL-AI version 1.0",
+                    subtitle: "Learn more about EduVL-AI",
                     onTap: () {},
                   ),
 
-                  const SizedBox(height: 35),
+                  const SizedBox(height: 28),
 
-                  /// 🔴 Logout
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
@@ -144,11 +145,14 @@ class ProfilePage extends StatelessWidget {
 
                         Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
                           MaterialPageRoute(builder: (_) => const RegisterPage()),
-                          (route) => false,
+                              (route) => false,
                         );
                       },
                       icon: const Icon(Icons.logout, color: Colors.white),
-                      label: const Text("Log Out", style: TextStyle(fontSize: 18)),
+                      label: const Text(
+                        "Log Out",
+                        style: TextStyle(fontSize: 18),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red,
                         minimumSize: const Size(double.infinity, 55),
@@ -159,7 +163,17 @@ class ProfilePage extends StatelessWidget {
                     ),
                   ),
 
-                  const SizedBox(height: 25),
+                  const SizedBox(height: 24),
+
+                  Center(
+                    child: Text(
+                      "Version 1.0.0",
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.35),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -169,7 +183,7 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  static Widget settingsTile({
+  static Widget _settingsTile({
     required IconData icon,
     required String title,
     required String subtitle,
