@@ -39,40 +39,65 @@ class _AIHelpPageState extends State<AIHelpPage> {
   Future<String> _askGemini(String question) async {
     const String modelName = "gemini-2.5-flash";
 
+    // فحص المفتاح قبل الإرسال
+    if (geminiApiKey.trim().isEmpty) {
+      debugPrint("Gemini API key is empty.");
+      return "Gemini API key is missing. Please check gemini_key.dart";
+    }
+
+    final url = Uri.parse(
+      "https://generativelanguage.googleapis.com/v1beta/models/$modelName:generateContent?key=$geminiApiKey",
+    );
+
+    final requestBody = {
+      "contents": [
+        {
+          "parts": [
+            {"text": question}
+          ]
+        }
+      ],
+      "generationConfig": {
+        "temperature": 0.7,
+        "maxOutputTokens": 500,
+      }
+    };
+
     for (int attempt = 0; attempt < 2; attempt++) {
       try {
-        final url = Uri.parse(
-          "https://generativelanguage.googleapis.com/v1beta/models/$modelName:generateContent?key=$geminiApiKey",
-        );
+        debugPrint("========== GEMINI REQUEST ==========");
+        debugPrint("Model: $modelName");
+        debugPrint("Attempt: ${attempt + 1}");
+        debugPrint("URL: $url");
+        debugPrint("Request Body: ${jsonEncode(requestBody)}");
 
         final response = await http
             .post(
           url,
-          headers: {"Content-Type": "application/json"},
-          body: jsonEncode({
-            "contents": [
-              {
-                "parts": [
-                  {"text": question}
-                ]
-              }
-            ]
-          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: jsonEncode(requestBody),
         )
             .timeout(const Duration(seconds: 20));
 
-        debugPrint("Gemini model: $modelName");
-        debugPrint("Gemini attempt: ${attempt + 1}");
-        debugPrint("Gemini status: ${response.statusCode}");
-        debugPrint("Gemini body: ${response.body}");
+        debugPrint("========== GEMINI RESPONSE ==========");
+        debugPrint("Status Code: ${response.statusCode}");
+        debugPrint("Response Body: ${response.body}");
 
-        final Map<String, dynamic> data = jsonDecode(response.body);
+        Map<String, dynamic> data = {};
+        try {
+          data = jsonDecode(response.body) as Map<String, dynamic>;
+        } catch (e) {
+          debugPrint("JSON decode error: $e");
+          return "The AI returned an unreadable response.";
+        }
 
         if (response.statusCode == 200) {
           final candidates = data["candidates"];
 
           if (candidates is List && candidates.isNotEmpty) {
-            final firstCandidate = candidates[0];
+            final firstCandidate = candidates.first;
             final content = firstCandidate["content"];
             final parts = content?["parts"];
 
@@ -92,28 +117,26 @@ class _AIHelpPageState extends State<AIHelpPage> {
             }
 
             final finishReason = firstCandidate["finishReason"];
-            if (finishReason != null) {
-              debugPrint("Gemini finishReason: $finishReason");
-
-              if (attempt < 1) {
-                await Future.delayed(const Duration(seconds: 2));
-                continue;
-              }
-
-              return "I couldn’t complete this response right now. Please try asking in a simpler way.";
-            }
-          }
-
-          final promptFeedback = data["promptFeedback"];
-          if (promptFeedback != null) {
-            debugPrint("Prompt feedback: $promptFeedback");
+            debugPrint("Finish Reason: $finishReason");
 
             if (attempt < 1) {
               await Future.delayed(const Duration(seconds: 2));
               continue;
             }
 
-            return "I couldn’t answer this request right now. Please try asking in a different way.";
+            return "I couldn’t complete this response right now. Please try again.";
+          }
+
+          final promptFeedback = data["promptFeedback"];
+          if (promptFeedback != null) {
+            debugPrint("Prompt Feedback: $promptFeedback");
+
+            if (attempt < 1) {
+              await Future.delayed(const Duration(seconds: 2));
+              continue;
+            }
+
+            return "Your request could not be processed. Please try changing the wording.";
           }
 
           if (attempt < 1) {
@@ -121,7 +144,27 @@ class _AIHelpPageState extends State<AIHelpPage> {
             continue;
           }
 
-          return "I couldn’t get a clear response right now. Please try again.";
+          return "No valid response was returned from Gemini.";
+        }
+
+        // معالجة الأخطاء الواضحة
+        final error = data["error"];
+        final errorMessage = error is Map && error["message"] != null
+            ? error["message"].toString()
+            : "Unknown error";
+
+        debugPrint("Gemini Error Message: $errorMessage");
+
+        if (response.statusCode == 400) {
+          return "Bad request to Gemini: $errorMessage";
+        }
+
+        if (response.statusCode == 403) {
+          return "Access denied. Check your Gemini API key and permissions.";
+        }
+
+        if (response.statusCode == 404) {
+          return "Model not found. Please check the model name.";
         }
 
         if (response.statusCode == 429) {
@@ -129,47 +172,18 @@ class _AIHelpPageState extends State<AIHelpPage> {
             await Future.delayed(const Duration(seconds: 2));
             continue;
           }
-          return "The AI is busy right now. Please try again in a moment.";
+          return "Gemini is busy right now. Please try again in a moment.";
         }
 
-        if (response.statusCode == 503) {
+        if (response.statusCode == 500 || response.statusCode == 503) {
           if (attempt < 1) {
             await Future.delayed(const Duration(seconds: 2));
             continue;
           }
-          return "The AI service is temporarily unavailable. Please try again.";
+          return "Gemini service is temporarily unavailable.";
         }
 
-        final error = data["error"];
-        final errorMessage =
-        error is Map && error["message"] != null ? error["message"].toString() : "";
-
-        if (errorMessage.toLowerCase().contains("high demand")) {
-          if (attempt < 1) {
-            await Future.delayed(const Duration(seconds: 2));
-            continue;
-          }
-          return "The AI is currently under heavy load. Please try again in a moment.";
-        }
-
-        if (response.statusCode == 400) {
-          return "There was a problem with the request sent to the AI service.";
-        }
-
-        if (response.statusCode == 403) {
-          return "The AI service key is invalid or access is restricted.";
-        }
-
-        if (errorMessage.isNotEmpty) {
-          return errorMessage;
-        }
-
-        if (attempt < 1) {
-          await Future.delayed(const Duration(seconds: 2));
-          continue;
-        }
-
-        return "Sorry, I couldn’t respond right now. Please try again.";
+        return "Gemini error ${response.statusCode}: $errorMessage";
       } on TimeoutException {
         debugPrint("Gemini timeout on attempt ${attempt + 1}");
 
@@ -178,19 +192,16 @@ class _AIHelpPageState extends State<AIHelpPage> {
           continue;
         }
 
-        return "The request took too long. Please check your internet and try again.";
-      } on FormatException catch (e) {
-        debugPrint("Gemini JSON format error: $e");
-        return "The AI response was not in the expected format.";
+        return "The request timed out. Please check your connection and try again.";
       } catch (e) {
-        debugPrint("Gemini request error on attempt ${attempt + 1}: $e");
+        debugPrint("Gemini request exception on attempt ${attempt + 1}: $e");
 
         if (attempt < 1) {
           await Future.delayed(const Duration(seconds: 2));
           continue;
         }
 
-        return "Sorry, I couldn’t respond right now. Please try again.";
+        return "Request failed: $e";
       }
     }
 
@@ -278,19 +289,14 @@ class _AIHelpPageState extends State<AIHelpPage> {
                     ),
                   ),
                   const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text(
-                          "EduAI Assistant",
-                          style: TextStyle(
-                            fontSize: 24,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
+                  const Expanded(
+                    child: Text(
+                      "EduAI Assistant",
+                      style: TextStyle(
+                        fontSize: 24,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
@@ -363,7 +369,7 @@ class _AIHelpPageState extends State<AIHelpPage> {
                     Text(
                       "Thinking...",
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.65),
+                        color: Colors.white70,
                         fontSize: 13,
                       ),
                     ),
@@ -395,7 +401,7 @@ class _AIHelpPageState extends State<AIHelpPage> {
                         decoration: InputDecoration(
                           hintText: "Ask about your lesson or experiment...",
                           hintStyle: TextStyle(
-                            color: Colors.white.withOpacity(0.45),
+                            color: Colors.white54,
                           ),
                           border: InputBorder.none,
                         ),
