@@ -54,10 +54,9 @@ class _QuizPageState extends State<QuizPage> {
       }).toList();
 
       list.shuffle();
-      final limited = list.length > 3 ? list.take(3).toList() : list;
 
       setState(() {
-        questions = limited;
+        questions = list;
         loading = false;
         errorText = null;
       });
@@ -260,14 +259,16 @@ class _QuizPageState extends State<QuizPage> {
                       Expanded(
                         child: ListView.separated(
                           itemCount: options.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 12),
+                          separatorBuilder: (_, __) =>
+                          const SizedBox(height: 12),
                           itemBuilder: (context, index) {
                             final isSelected = selectedIndex == index;
                             final optionLetter =
-                            String.fromCharCode(65 + index); // A, B, C...
+                            String.fromCharCode(65 + index);
 
                             return GestureDetector(
-                              onTap: () => setState(() => selectedIndex = index),
+                              onTap: () =>
+                                  setState(() => selectedIndex = index),
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 180),
                                 padding: const EdgeInsets.all(14),
@@ -334,10 +335,12 @@ class _QuizPageState extends State<QuizPage> {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: selectedIndex == -1 ? null : submitAnswer,
+                          onPressed:
+                          selectedIndex == -1 ? null : submitAnswer,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF32D296),
-                            disabledBackgroundColor: const Color(0xFF3A4A5A),
+                            disabledBackgroundColor:
+                            const Color(0xFF3A4A5A),
                             elevation: 0,
                             minimumSize: const Size(double.infinity, 55),
                             shape: RoundedRectangleBorder(
@@ -345,7 +348,9 @@ class _QuizPageState extends State<QuizPage> {
                             ),
                           ),
                           child: Text(
-                            isLastQuestion ? "Finish Quiz" : "Next Question",
+                            isLastQuestion
+                                ? "Finish Quiz"
+                                : "Next Question",
                             style: const TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w600,

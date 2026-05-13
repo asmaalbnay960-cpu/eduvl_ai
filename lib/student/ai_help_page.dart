@@ -33,13 +33,13 @@ class _AIHelpPageState extends State<AIHelpPage> {
         .replaceAll(RegExp(r'\*'), '')
         .replaceAll(RegExp(r'__'), '')
         .replaceAll(RegExp(r'_'), '')
+        .replaceAll(RegExp(r'\n{3,}'), '\n\n')
         .trim();
   }
 
   Future<String> _askGemini(String question) async {
     const String modelName = "gemini-2.5-flash";
 
-    // فحص المفتاح قبل الإرسال
     if (geminiApiKey.trim().isEmpty) {
       debugPrint("Gemini API key is empty.");
       return "Gemini API key is missing. Please check gemini_key.dart";
@@ -53,13 +53,23 @@ class _AIHelpPageState extends State<AIHelpPage> {
       "contents": [
         {
           "parts": [
-            {"text": question}
+            {
+              "text":
+              "You are EduAI Assistant, a helpful educational assistant for students. "
+                  "Answer clearly, naturally, and in complete sentences. "
+                  "Keep the answer concise but complete. "
+                  "Do not stop in the middle of a sentence. "
+                  "Avoid markdown symbols like * or ** unless necessary.\n\n"
+                  "Student question: $question"
+            }
           ]
         }
       ],
       "generationConfig": {
         "temperature": 0.7,
-        "maxOutputTokens": 500,
+        "maxOutputTokens": 1024,
+        "topP": 0.95,
+        "topK": 40,
       }
     };
 
@@ -79,7 +89,7 @@ class _AIHelpPageState extends State<AIHelpPage> {
           },
           body: jsonEncode(requestBody),
         )
-            .timeout(const Duration(seconds: 20));
+            .timeout(const Duration(seconds: 25));
 
         debugPrint("========== GEMINI RESPONSE ==========");
         debugPrint("Status Code: ${response.statusCode}");
@@ -97,27 +107,42 @@ class _AIHelpPageState extends State<AIHelpPage> {
           final candidates = data["candidates"];
 
           if (candidates is List && candidates.isNotEmpty) {
-            final firstCandidate = candidates.first;
+            final firstCandidate = candidates.first as Map<String, dynamic>;
             final content = firstCandidate["content"];
-            final parts = content?["parts"];
+            final parts = content is Map<String, dynamic> ? content["parts"] : null;
+            final finishReason = firstCandidate["finishReason"]?.toString();
 
-            if (parts is List && parts.isNotEmpty) {
-              final buffer = StringBuffer();
+            final buffer = StringBuffer();
 
+            if (parts is List) {
               for (final part in parts) {
-                if (part is Map<String, dynamic> && part["text"] != null) {
-                  buffer.writeln(part["text"].toString());
+                if (part is Map<String, dynamic>) {
+                  final textPart = part["text"];
+                  if (textPart != null) {
+                    buffer.write(textPart.toString());
+                  }
                 }
-              }
-
-              final text = _cleanText(buffer.toString());
-              if (text.isNotEmpty) {
-                return text;
               }
             }
 
-            final finishReason = firstCandidate["finishReason"];
+            final text = _cleanText(buffer.toString());
+
             debugPrint("Finish Reason: $finishReason");
+            debugPrint("Extracted Text: $text");
+
+            if (text.isNotEmpty) {
+              if (finishReason == "MAX_TOKENS") {
+                return "$text\n\nPlease ask me to continue if you want the rest.";
+              }
+
+              return text;
+            }
+
+            final promptFeedback = data["promptFeedback"];
+            if (promptFeedback != null) {
+              debugPrint("Prompt Feedback: $promptFeedback");
+              return "Your request could not be processed. Please try changing the wording.";
+            }
 
             if (attempt < 1) {
               await Future.delayed(const Duration(seconds: 2));
@@ -130,12 +155,6 @@ class _AIHelpPageState extends State<AIHelpPage> {
           final promptFeedback = data["promptFeedback"];
           if (promptFeedback != null) {
             debugPrint("Prompt Feedback: $promptFeedback");
-
-            if (attempt < 1) {
-              await Future.delayed(const Duration(seconds: 2));
-              continue;
-            }
-
             return "Your request could not be processed. Please try changing the wording.";
           }
 
@@ -147,7 +166,6 @@ class _AIHelpPageState extends State<AIHelpPage> {
           return "No valid response was returned from Gemini.";
         }
 
-        // معالجة الأخطاء الواضحة
         final error = data["error"];
         final errorMessage = error is Map && error["message"] != null
             ? error["message"].toString()
@@ -169,7 +187,7 @@ class _AIHelpPageState extends State<AIHelpPage> {
 
         if (response.statusCode == 429) {
           if (attempt < 1) {
-            await Future.delayed(const Duration(seconds: 2));
+            await Future.delayed(const Duration(seconds: 3));
             continue;
           }
           return "Gemini is busy right now. Please try again in a moment.";
@@ -177,7 +195,7 @@ class _AIHelpPageState extends State<AIHelpPage> {
 
         if (response.statusCode == 500 || response.statusCode == 503) {
           if (attempt < 1) {
-            await Future.delayed(const Duration(seconds: 2));
+            await Future.delayed(const Duration(seconds: 3));
             continue;
           }
           return "Gemini service is temporarily unavailable.";
@@ -231,7 +249,13 @@ class _AIHelpPageState extends State<AIHelpPage> {
       debugPrint("AI usage tracking error: $e");
     }
 
-    final reply = await _askGemini(text);
+    String reply;
+    try {
+      reply = await _askGemini(text);
+    } catch (e) {
+      debugPrint("Unexpected sendMessage error: $e");
+      reply = "Something went wrong while getting the response.";
+    }
 
     if (!mounted) return;
 
@@ -246,6 +270,7 @@ class _AIHelpPageState extends State<AIHelpPage> {
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scrollController.hasClients) return;
+
       _scrollController.animateTo(
         _scrollController.position.maxScrollExtent + 120,
         duration: const Duration(milliseconds: 300),
@@ -356,8 +381,8 @@ class _AIHelpPageState extends State<AIHelpPage> {
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const SizedBox(
+                  children: const [
+                    SizedBox(
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(
@@ -365,7 +390,7 @@ class _AIHelpPageState extends State<AIHelpPage> {
                         color: Color(0xFF2ECC71),
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    SizedBox(width: 10),
                     Text(
                       "Thinking...",
                       style: TextStyle(
@@ -398,7 +423,8 @@ class _AIHelpPageState extends State<AIHelpPage> {
                         onSubmitted: (_) => sendMessage(),
                         minLines: 1,
                         maxLines: 4,
-                        decoration: InputDecoration(
+                        textInputAction: TextInputAction.send,
+                        decoration: const InputDecoration(
                           hintText: "Ask about your lesson or experiment...",
                           hintStyle: TextStyle(
                             color: Colors.white54,
